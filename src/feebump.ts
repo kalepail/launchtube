@@ -38,6 +38,9 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 
 		const now_credits = existing_credits - (fee * transaction.operations.length);
 
+		if (now_credits < 0)
+			throw new Error('Not enough credits')
+
 		await this.ctx.storage.put('credits', now_credits);
 
 		return {
