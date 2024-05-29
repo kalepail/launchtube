@@ -22,10 +22,8 @@ Get the remaining credits (stoops) available for your account
 
 Submit a transaction for fee-bumping
 
-<aside>
-⚠️ Credits are used when calling *this* endpoint successfully. **NOT** when submitting the fee-bumped transaction to the Stellar network.
-
-</aside>
+> [!IMPORTANT]  
+> Credits are used when calling *this* endpoint successfully. **NOT** when submitting the fee-bumped transaction to the Stellar network.
 
 #### Body
 
