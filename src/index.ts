@@ -2,6 +2,7 @@ import { BASE_FEE } from "@stellar/stellar-sdk";
 import { FeeBumpDurableObject } from "./feebump";
 import { IttyRouter, RequestLike, cors, error, json, text, withParams } from 'itty-router'
 import { verify, decode, sign } from '@tsndr/cloudflare-worker-jwt'
+import { object, preprocess, number, string } from "zod";
 
 const MAX_U32 = 2 ** 32 - 1
 
@@ -11,32 +12,19 @@ const router = IttyRouter()
 router
 	.options('*', preflight)
 	.all('*', withParams)
-	.get('/gen', async (request: RequestLike, env: Env, ctx: ExecutionContext) => {
+	.get('/gen', async (request: RequestLike, env: Env, _ctx: ExecutionContext) => {
 		const token = request.headers.get('Authorization').split(' ')[1]
 
 		if (!await env.SUDOS.get(token))
 			return error(401, 'Unauthorized')
 
-		const ttl = Number(request.query.ttl)
-		const credits = Number(request.query.credits)
-		
-		let count = Number(request.query.count)
+		const body = object({
+			ttl: preprocess(Number, number()),
+			credits: preprocess(Number, number()),
+			count: preprocess(Number, number().gte(1).lte(100)),
+		});
 
-		if (
-			!ttl
-			|| Number.isNaN(ttl)
-		) return error(400, `Invalid \`ttl\` key`)
-
-		if (
-			!credits
-			|| Number.isNaN(credits)
-		) return error(400, `Invalid \`credits\` key`)
-
-		if (
-			!count
-			|| Number.isNaN(count)
-			|| Number(count) > 100
-		) return error(400, '`count` key must be <= 100')
+		let { ttl, credits, count } = body.parse(request.query)
 
 		const tokens = []
 
@@ -55,7 +43,7 @@ router
 
 		return json(tokens)
 	})
-	.get('/', async (request: RequestLike, env: Env, ctx: ExecutionContext) => {
+	.get('/', async (request: RequestLike, env: Env, _ctx: ExecutionContext) => {
 		const token = request.headers.get('Authorization').split(' ')[1]
 
 		if (!await verify(token, env.JWT_SECRET))
@@ -73,21 +61,15 @@ router
 
 		return text(info)
 	})
-	.post('/', async (request: RequestLike, env: Env, ctx: ExecutionContext) => {
+	.post('/', async (request: RequestLike, env: Env, _ctx: ExecutionContext) => {
 		const token = request.headers.get('Authorization').split(' ')[1]
-		const body = await request.formData()
-		const xdr = body.get('xdr')?.toString()
-		const fee = Number(body.get('fee')) ?? 100
 
-		if (!xdr)
-			return error(400, 'Missing `xdr` key')
+		const body = object({
+			xdr: string(),
+			fee: preprocess(Number, number().gte(Number(BASE_FEE)).lte(MAX_U32)),
+		});
 
-		if (
-			!fee
-			|| Number.isNaN(fee)
-			|| fee < Number(BASE_FEE)
-			|| fee > MAX_U32
-		) return error(400, `\`fee\` key must be >= ${BASE_FEE} and <= ${MAX_U32}`)
+		const { xdr, fee } = body.parse(Object.fromEntries(await request.formData()))
 
 		if (!await verify(token, env.JWT_SECRET))
 			return error(401, 'Unauthorized')

@@ -11,15 +11,16 @@
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240512.0",
-    "esbuild": "^0.20.2",
+    "@cloudflare/workers-types": "^4.20240524.0",
+    "esbuild": "^0.21.4",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "typescript": "^5.4.5",
-    "wrangler": "^3.57.1"
+    "wrangler": "^3.57.2"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "git+https://github.com/stellar/js-stellar-sdk.git#cf-worker",
     "@tsndr/cloudflare-worker-jwt": "^2.5.3",
-    "itty-router": "^5.0.17"
+    "itty-router": "^5.0.17",
+    "zod": "^3.23.8"
   }
 }
