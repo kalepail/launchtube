@@ -1,4 +1,4 @@
-import { Keypair, Networks, Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
+import { Keypair, Networks, Transaction, TransactionBuilder } from "@stellar/stellar-base";
 import { DurableObject } from "cloudflare:workers";
 
 export class FeeBumpDurableObject extends DurableObject<Env> {
@@ -21,10 +21,14 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 
 	async bump(xdr: string, fee: number) {
 		const keypair = Keypair.fromSecret(this.env.FEEBUMP_SK);
+		const transaction = new Transaction(xdr, Networks.TESTNET)
 
-		const transaction = new Transaction(xdr, Networks.PUBLIC)
-
-		const feebump = TransactionBuilder.buildFeeBumpTransaction(keypair, fee.toString(), transaction, Networks.PUBLIC);
+		// NOTE: divided by 2 as a workaround to my workaround solution where TransactionBuilder.buildFeeBumpTransaction tries to be smart about the op base fee
+		// https://github.com/stellar/js-stellar-base/issues/749
+		// https://github.com/stellar/js-stellar-base/compare/master...inner-fee-fix
+		// https://discord.com/channels/897514728459468821/1245935726424752220
+		const jank_fee = (Number(transaction.fee) + fee) / 2
+		const feebump = TransactionBuilder.buildFeeBumpTransaction(keypair, jank_fee.toString(), transaction, Networks.TESTNET);
 
 		feebump.sign(keypair);
 
@@ -42,6 +46,16 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 			throw new Error('Not enough credits')
 
 		await this.ctx.storage.put('credits', now_credits);
+
+		await this.env.DB.prepare(`
+			INSERT OR IGNORE INTO Transactions (Sub, Tx) 
+			VALUES (?1, ?2)
+		`)
+			.bind(
+				this.ctx.id.toString(),
+				feebump.hash().toString('hex')
+			)
+			.run()
 
 		return {
 			tx: feebump.toXDR(),

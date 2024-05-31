@@ -1,8 +1,8 @@
-import { BASE_FEE } from "@stellar/stellar-sdk";
+import { BASE_FEE } from "@stellar/stellar-base";
 import { FeeBumpDurableObject } from "./feebump";
 import { IttyRouter, RequestLike, cors, error, json, text, withParams } from 'itty-router'
 import { verify, decode, sign } from '@tsndr/cloudflare-worker-jwt'
-import { object, preprocess, number, string } from "zod";
+import { object, preprocess, number, string, array } from "zod";
 
 const MAX_U32 = 2 ** 32 - 1
 
@@ -101,6 +101,39 @@ router
 		await stub.delete()
 
 		return text('OK')
+	})
+	.get('/sql', async (request: RequestLike, env: Env, _ctx: ExecutionContext) => {
+		const token = request.headers.get('Authorization').split(' ')[1]
+
+		if (!await env.SUDOS.get(token))
+			return error(401, 'Unauthorized')
+
+		const body = object({
+			query: string(),
+			args: preprocess(
+				(val) => val ? JSON.parse(val as string) : undefined,
+				array(string()).optional()
+			)
+		});
+
+		let { query, args } = body.parse(Object.fromEntries(await request.formData()))
+
+		let results = []
+
+		if (args) {
+			const { results: r } = await env.DB.prepare(query)
+				.bind(...args)
+				.all();
+
+			results = r
+		} else {
+			const { results: r } = await env.DB.prepare(query)
+				.all();
+
+			results = r
+		}
+
+		return json(results)
 	})
 	.all('*', () => error(404))
 

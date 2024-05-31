@@ -17,6 +17,11 @@ new_classes = ["FeeBumpDurableObject"]
 binding = "SUDOS"
 id = "1fcab4e76e4948ba9b728271fa51586d"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "feebump-testnet"
+database_id = "34947c2c-aada-4550-af7d-eeabcef5d98d"
+
 [build]
 command = "npm run build"
 
