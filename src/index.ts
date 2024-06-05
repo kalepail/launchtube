@@ -9,6 +9,8 @@ const MAX_U32 = 2 ** 32 - 1
 const { preflight, corsify } = cors()
 const router = IttyRouter()
 
+// TODO consider adding an endpoint to create sequence accounts
+
 router
 	.options('*', preflight)
 	.all('*', withParams)
@@ -102,7 +104,7 @@ router
 
 		return text('OK')
 	})
-	.get('/sql', async (request: RequestLike, env: Env, _ctx: ExecutionContext) => {
+	.post('/sql', async (request: RequestLike, env: Env, _ctx: ExecutionContext) => {
 		const token = request.headers.get('Authorization').split(' ')[1]
 
 		if (!await env.SUDOS.get(token))
