@@ -30,7 +30,7 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 		// https://github.com/stellar/js-stellar-base/compare/master...inner-fee-fix
 		// https://discord.com/channels/897514728459468821/1245935726424752220
 		const jank_fee = resourceFee 
-			? Math.ceil((Number(resourceFee || transaction.fee) + fee) / 2) // If Soroban tx handle the fee as a total inclusion fee combining the outer and inner base fee
+			? Math.ceil((Number(resourceFee) + fee) / 2) // If Soroban tx handle the fee as a total inclusion fee combining the outer and inner base fee
 			: Math.ceil(fee / (transaction.operations.length + 1)) // Otherwise treat the fee as a total tx fee divided into per operation fees
 		const feebump = TransactionBuilder.buildFeeBumpTransaction(keypair, jank_fee.toString(), transaction, Networks.TESTNET);
 
