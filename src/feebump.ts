@@ -23,11 +23,15 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 		const keypair = Keypair.fromSecret(this.env.FEEBUMP_SK);
 		const transaction = new Transaction(xdr, Networks.TESTNET)
 
+		// use the soroban resource fee if it's available
+		const resourceFee = transaction.toEnvelope().v1().tx().ext().sorobanData()?.resourceFee().toString()
 		// NOTE: divided by 2 as a workaround to my workaround solution where TransactionBuilder.buildFeeBumpTransaction tries to be smart about the op base fee
 		// https://github.com/stellar/js-stellar-base/issues/749
 		// https://github.com/stellar/js-stellar-base/compare/master...inner-fee-fix
 		// https://discord.com/channels/897514728459468821/1245935726424752220
-		const jank_fee = (Number(transaction.fee) + fee) / 2
+		const jank_fee = resourceFee 
+			? Math.ceil((Number(resourceFee || transaction.fee) + fee) / 2) // If Soroban tx handle the fee as a total inclusion fee combining the outer and inner base fee
+			: Math.ceil(fee / (transaction.operations.length + 1)) // Otherwise treat the fee as a total tx fee divided into per operation fees
 		const feebump = TransactionBuilder.buildFeeBumpTransaction(keypair, jank_fee.toString(), transaction, Networks.TESTNET);
 
 		feebump.sign(keypair);
@@ -40,7 +44,7 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 			|| existing_credits <= 0
 		) throw new Error('No credits left')
 
-		const now_credits = existing_credits - (fee * transaction.operations.length);
+		const now_credits = existing_credits - Number(feebump.fee);
 
 		if (now_credits < 0)
 			throw new Error('Not enough credits')
