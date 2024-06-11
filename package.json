@@ -8,18 +8,20 @@
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "build": "node esbuild.js",
-    "cf-typegen": "wrangler types"
+    "types": "wrangler types"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0",
-    "esbuild": "^0.21.4",
+    "@cloudflare/workers-types": "^4.20240605.0",
+    "esbuild": "^0.21.5",
     "esbuild-plugin-polyfill-node": "^0.3.0",
+    "loadtest": "^8.0.9",
     "typescript": "^5.4.5",
-    "wrangler": "^3.58.0"
+    "wrangler": "^3.60.1"
   },
   "dependencies": {
     "@stellar/stellar-base": "git+https://github.com/stellar/js-stellar-base.git#inner-fee-fix",
     "@tsndr/cloudflare-worker-jwt": "^2.5.3",
+    "itty-fetcher": "^0.9.4",
     "itty-router": "^5.0.17",
     "zod": "^3.23.8"
   }

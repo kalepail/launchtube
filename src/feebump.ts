@@ -1,5 +1,11 @@
-import { Keypair, Networks, Transaction, TransactionBuilder } from "@stellar/stellar-base";
+import { Keypair, Transaction, TransactionBuilder } from "@stellar/stellar-base";
 import { DurableObject } from "cloudflare:workers";
+import { networkPassphrase } from "./common";
+
+/* TODO 
+	- Switch to accepting auth entries
+		Will require creating a sequence account pool
+*/
 
 export class FeeBumpDurableObject extends DurableObject<Env> {
 	constructor(ctx: DurableObjectState, env: Env) {
@@ -21,7 +27,7 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 
 	async bump(xdr: string, fee: number) {
 		const keypair = Keypair.fromSecret(this.env.FEEBUMP_SK);
-		const transaction = new Transaction(xdr, Networks.TESTNET)
+		const transaction = new Transaction(xdr, networkPassphrase)
 
 		// use the soroban resource fee if it's available
 		const resourceFee = transaction.toEnvelope().v1().tx().ext().sorobanData()?.resourceFee().toString()
@@ -32,7 +38,7 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 		const jank_fee = resourceFee 
 			? Math.ceil((Number(resourceFee) + fee) / 2) // If Soroban tx handle the fee as a total inclusion fee combining the outer and inner base fee
 			: Math.ceil(fee / (transaction.operations.length + 1)) // Otherwise treat the fee as a total tx fee divided into per operation fees
-		const feebump = TransactionBuilder.buildFeeBumpTransaction(keypair, jank_fee.toString(), transaction, Networks.TESTNET);
+		const feebump = TransactionBuilder.buildFeeBumpTransaction(keypair, jank_fee.toString(), transaction, networkPassphrase);
 
 		feebump.sign(keypair);
 
