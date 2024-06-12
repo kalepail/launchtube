@@ -5,7 +5,7 @@ import { IttyRouter, RequestLike, cors, error, json, text, withParams } from 'it
 import { verify, decode, sign } from '@tsndr/cloudflare-worker-jwt'
 import { object, preprocess, number, string, array, ZodIssueCode } from "zod";
 import { getAccount, networkPassphrase, sendTransaction, simulateTransaction } from "./common";
-import { getMockOp } from "./helpers";
+import { getMockData } from "./helpers";
 
 const MAX_U32 = 2 ** 32 - 1
 const SEQUENCER_ID_NAME = 'Test Launchtube ; June 2024'
@@ -82,7 +82,7 @@ router
 				fee,
 			} = schema.parse(
 				isMock && env.ENV === 'development'
-					? await getMockOp(mock) // Only ever mock in development
+					? await getMockData(mock) // Only ever mock in development
 					: Object.fromEntries(formData)
 			)
 
@@ -139,6 +139,8 @@ router
 						It's possible we could ease up on this in the future with some careful checking
 						We could probably snipe the tx source if `xdr` was the arg and use it for the op source as well as any provided auth source itself
 							We'd just need to ensure the source wasn't a system provided sequence account
+						I actually don't think this will work as `credentials: [sorobanCredentialsSourceAccount]` borrows from the tx signature which we're entirely co-opting
+						Thus users/devs will need to never use an important tx or op source when crafting launchtube transactions
 				*/
 				.addOperation(Operation.invokeContractFunction({
 					contract,
@@ -332,10 +334,12 @@ const handler = {
 		router
 			.fetch(request, env, ctx)
 			.catch((err) => {
-				console.error(err)
-				throw err
+				console.error(err);
+				return error(
+					typeof err?.status === 'number' ? err.status : 400, 
+					err instanceof Error ? err?.message : err
+				)
 			})
-			.catch(error)
 			.then((r) => corsify(r, request))
 }
 

@@ -1,6 +1,6 @@
 import loadtest from 'loadtest'
 
-const TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0YzBhMDg5M2UxYWRhYjk0MzY5YWY0YmVkNjBiNTA3MDAwZjAzMDBmNDYzNDVmYzNmZTgyMTY0NTNiMGExOGQwIiwiZXhwIjoxNzIwNjM3OTYyLCJpYXQiOjE3MTgyMTg3NjJ9.j3D5wZpnFnSY1QiV0AUdi4dfI0GntbE9JM6DN5u_NZQ'
+const TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhMTI2Zjc3MzYyMmU5ZGMwYzQxYmJiZTJiYTExOWQxYTRhZWNhOTY3ZDBmMzU3YzI2ZmMyNmJjMjkzNzdhZjY0IiwiZXhwIjoxNzIwNjUxNDAyLCJpYXQiOjE3MTgyMzIyMDJ9.ipgdrX3WPmyaFxndbP8fVf9qIK6V72XsziMUojLj0eo'
 
 const options = {
   url: 'http://localhost:8787',

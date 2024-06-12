@@ -36,7 +36,7 @@ export function getRandomNumber(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export async function getMockOp(type: 'xdr' | 'op' | undefined = undefined) {
+export async function getMockData(type: 'xdr' | 'op' | undefined = undefined) {
     const mockKeypair = Keypair.fromRawEd25519Seed(Buffer.alloc(32)) // NOTE this isn't the actual zero address
     const mockPubkey = mockKeypair.publicKey()
     const mockSource = new Account(mockPubkey, '0')
@@ -52,6 +52,7 @@ export async function getMockOp(type: 'xdr' | 'op' | undefined = undefined) {
                 nativeToScVal(testPubkey, { type: 'address' }),
                 nativeToScVal(nativeContract, { type: 'address' }),
                 nativeToScVal(100, { type: 'i128' })
+                // nativeToScVal(-1, { type: 'i128' }) // to fail simulation
             ],
             auth: []
         }))
@@ -66,7 +67,7 @@ export async function getMockOp(type: 'xdr' | 'op' | undefined = undefined) {
         const authUnsigned = xdr.SorobanAuthorizationEntry.fromXDR(authXDR, 'base64')
         const authSigned = await authorizeEntry(authUnsigned, testKeypair, sim.latestLedger + 60, networkPassphrase)
 
-        op.auth!.push(authSigned)
+        op.auth!.push(authSigned) // comment this out to fail submission
     }
 
     const fee = getRandomNumber(10_000, 100_000).toString()
