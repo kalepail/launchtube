@@ -3,3 +3,6 @@ npx wrangler d1 execute feebump-testnet --local --file=./schema.sql
 
 # Add SUDO key
 wrangler kv:key put b2e101b2e43f12d4ace36f86f3e478b02d62262d0a88b8a7a4b912c40ca275f2 true --binding SUDOS --local
+
+# Generate keys
+openssl rand -base64 32

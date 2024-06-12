@@ -1,2 +1,3 @@
 FEEBUMP_SK=
 JWT_SECRET=
+ENV=development

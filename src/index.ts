@@ -9,6 +9,7 @@ import { getMockOp } from "./helpers";
 
 const MAX_U32 = 2 ** 32 - 1
 const SEQUENCER_ID_NAME = 'stellaristhebetterblockchain'
+const EAGER_CREDITS = 100_000
 
 const { preflight, corsify } = cors()
 const router = IttyRouter()
@@ -36,6 +37,13 @@ router
 
 		if (!payload?.sub)
 			return error(401, 'Invalid')
+
+		const creditsId = env.CREDITS_DURABLE_OBJECT.idFromString(payload.sub)
+		const creditsStub = env.CREDITS_DURABLE_OBJECT.get(creditsId) as DurableObjectStub<CreditsDurableObject>;
+
+		// Spend some initial credits before doing any work as a spam prevention measure. These will be refunded if the transaction succeeds
+		// TODO at some point we should decide if the failure was user error or system error and refund the credits in case of system error
+		await creditsStub.spendEager(EAGER_CREDITS)
 
 		let res: any
 		let credits: number
@@ -181,20 +189,21 @@ router
 
 			feeBumpTransaction.sign(sourceKeypair)
 
-			const creditsId = env.CREDITS_DURABLE_OBJECT.idFromString(payload.sub)
-			const creditsStub = env.CREDITS_DURABLE_OBJECT.get(creditsId) as DurableObjectStub<CreditsDurableObject>;
+			const bidCredits = Number(feeBumpTransaction.fee)
 
-			/* TODO 
-				- Consider spending these credits earlier
-					I don't actually think this is possible however the whole reason is to prevent abuse by forcing credits spends even in the case something fails further down the pipe
-					We could eagerly spend credits at the very beginning of the request and then "refund" them back right before making this call, then if something fails those credits are burned thus protecting the system
-			*/
-			credits = await creditsStub.spend(
-				Number(feeBumpTransaction.fee),
-				feeBumpTransaction.hash().toString('hex')
-			)
+			// Refund eager credits and spend the tx bid credits
+			await creditsStub.spendBefore(bidCredits, EAGER_CREDITS)
 
 			res = await sendTransaction(feeBumpTransaction.toXDR())
+
+			const feeCredits = xdr.TransactionResult.fromXDR(res.resultXdr, 'base64').feeCharged().toBigInt()
+
+			// Refund the bid credits and spend the actual fee credits
+			credits = await creditsStub.spendAfter(
+				Number(feeCredits),
+				feeBumpTransaction.hash().toString('hex'),
+				bidCredits
+			)
 		} finally {
 			// if this fails we'd lose the sequence keypair. Fine because sequences are derived and thus re-discoverable
 			if (sequencerStub && sequenceSecret)

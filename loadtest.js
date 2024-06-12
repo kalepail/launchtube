@@ -1,9 +1,9 @@
 import loadtest from 'loadtest'
 
-const TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3NjBhY2Y3YTBmODFkNGZiNDZhYmMyZmZkMWY4NjM3MmY2ZmYzZDA0YjU5ZTQ3ZWM0NGQxYmExM2NjNjNiMDMxIiwiZXhwIjoxNzIwNjMzMjMzLCJpYXQiOjE3MTgyMTQwMzN9._JCBu9W3GY-zT3eP6E89sU0KGHj4q3eEHrhkADGNqY8'
+const TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0YzBhMDg5M2UxYWRhYjk0MzY5YWY0YmVkNjBiNTA3MDAwZjAzMDBmNDYzNDVmYzNmZTgyMTY0NTNiMGExOGQwIiwiZXhwIjoxNzIwNjM3OTYyLCJpYXQiOjE3MTgyMTg3NjJ9.j3D5wZpnFnSY1QiV0AUdi4dfI0GntbE9JM6DN5u_NZQ'
 
 const options = {
-  url: 'http://localhost:8787/seq/getSequence',
+  url: 'http://localhost:8787',
   method: 'POST',
   maxRequests: 50,
   requestsPerSecond: 10,
@@ -19,17 +19,20 @@ const options = {
 }
 
 loadtest.loadTest(options, (error, result) => {
-  // This blocks gets called when whole test is finished
-  if (error) {
+  if (error)
     console.log('Got an error: %s', error)
-  }
+
   // console.log('Got the following result from the test>>\n', result)
 })
 
 function statusCallback(error, result, latency) {
   if (result) {
     const body = JSON.parse(result.body)
-    console.log(body.hash, result.statusCode, result.requestElapsed)
+
+    if (body.hash)
+      console.log(body.hash, result.statusCode, result.requestElapsed)
+    else
+      console.log(body, result.statusCode, result.requestElapsed)
   }
 
   else if (error)

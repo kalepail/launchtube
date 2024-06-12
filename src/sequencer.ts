@@ -6,7 +6,6 @@ import { addUniqItemsToArray, getRandomNumber, removeValueFromArrayIfExists, wai
 /* TODO
     - Likely it only makes sense to have so many sequence accounts as there are hard Soroban limits
         Past probably 100 we should start error'ing with a "wait a bit" message
-        And eventually, maybe sooner rather than later, we should switch the whole thing to a queue system vs a synchronous system 
 */
 
 export class SequencerDurableObject extends DurableObject<Env> {
@@ -60,6 +59,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
         this.ctx.storage.put(`pool:${sequenceSecret}`, true)
     }
 
+    // e.g. scenario
     // 100 requests for new sequences comes in
     // All are queued up and begin to wait
     // Once the fund account is ready the first 25 are taken from the queue
