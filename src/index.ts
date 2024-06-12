@@ -18,6 +18,7 @@ const router = IttyRouter()
 	- Likely need some rate limiting around here
 		Throttle on dupe params
 		Throttle on sequence creation
+		Eager credit spending may be a sufficient deterrent
 	- Probably need to move to a queue system and polling so we don’t have to keep connections open for submissions that may take awhile to get through during times of high throughput
 		This probably makes the whole system a bit more resilient
 */

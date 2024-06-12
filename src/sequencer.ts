@@ -3,11 +3,6 @@ import { DurableObject } from "cloudflare:workers";
 import { getAccount, networkPassphrase, sendTransaction } from "./common";
 import { addUniqItemsToArray, getRandomNumber, removeValueFromArrayIfExists, wait } from "./helpers";
 
-/* TODO
-    - Likely it only makes sense to have so many sequence accounts as there are hard Soroban limits
-        Past probably 100 we should start error'ing with a "wait a bit" message
-*/
-
 export class SequencerDurableObject extends DurableObject<Env> {
     private ready: boolean = true
     private queue: string[] = []
@@ -68,6 +63,14 @@ export class SequencerDurableObject extends DurableObject<Env> {
     // Repeat taking the next batch of queued sequences 
 
     private async queueSequence() {
+        /* TODO
+            - Don't love this. 
+                Ideally we switch to a queue system that can handle this in a more elegant manner
+                On the plus side needing to spin up new sequence accounts shouldn't be terribly common
+        */
+        if (this.queue.length >= 25)
+            throw 'Too many sequences queued. Please try again later'
+
         const index = await this.ctx.storage.get<number>('index') || 0
         const indexBuffer = Buffer.alloc(4);
         
