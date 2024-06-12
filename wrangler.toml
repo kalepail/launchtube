@@ -6,8 +6,8 @@ workers_dev = true
 minify = true
 
 [[durable_objects.bindings]]
-name = "FEEBUMP_DURABLE_OBJECT"
-class_name = "FeeBumpDurableObject"
+name = "CREDITS_DURABLE_OBJECT"
+class_name = "CreditsDurableObject"
 
 [[durable_objects.bindings]]
 name = "SEQUENCER_DURABLE_OBJECT"
@@ -20,6 +20,10 @@ new_classes = ["FeeBumpDurableObject"]
 [[migrations]]
 tag = "v2"
 new_classes = ["SequencerDurableObject"]
+
+[[migrations]]
+tag = "v3"
+renamed_classes = [{from = "FeeBumpDurableObject", to = "CreditsDurableObject" }]
 
 [[kv_namespaces]]
 binding = "SUDOS"

@@ -95,7 +95,7 @@ export function getTransaction(hash: string) {
         // 'SUCCESS'
         // 'NOT_FOUND'
         // 'FAILED'
-        if (res.status === 'FAILED')
+        if (res.result.status === 'FAILED')
             throw res.result
 
         return res.result

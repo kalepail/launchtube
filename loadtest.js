@@ -1,6 +1,6 @@
 import loadtest from 'loadtest'
 
-let counter = 0
+const TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3NjBhY2Y3YTBmODFkNGZiNDZhYmMyZmZkMWY4NjM3MmY2ZmYzZDA0YjU5ZTQ3ZWM0NGQxYmExM2NjNjNiMDMxIiwiZXhwIjoxNzIwNjMzMjMzLCJpYXQiOjE3MTgyMTQwMzN9._JCBu9W3GY-zT3eP6E89sU0KGHj4q3eEHrhkADGNqY8'
 
 const options = {
   url: 'http://localhost:8787/seq/getSequence',
@@ -9,6 +9,9 @@ const options = {
   requestsPerSecond: 10,
   concurrency: 5,
   statusCallback,
+  headers: {
+    'Authorization': `Bearer ${TOKEN}`
+  },
   body: {
     mock: 'xdr'
   },
