@@ -73,8 +73,9 @@ export class SequencerDurableObject extends DurableObject<Env> {
         
         indexBuffer.writeUInt32BE(index);
 
+        // Seed new sequences in a reproducible way so we can always recreate them to recoup "lost" accounts
         const sequenceBuffer = Buffer.concat([
-            StrKey.decodeEd25519SecretSeed(this.env.FEEBUMP_SK),
+            StrKey.decodeEd25519SecretSeed(this.env.FUND_SK),
             indexBuffer
         ])
         const sequenceSeed = await crypto.subtle.digest({ name: 'SHA-256' }, sequenceBuffer);
@@ -130,7 +131,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
         try {
             this.ready = false
 
-            const fundKeypair = Keypair.fromSecret(this.env.FEEBUMP_SK)
+            const fundKeypair = Keypair.fromSecret(this.env.FUND_SK)
             const fundPubkey = fundKeypair.publicKey()
             const fundSource = await getAccount(fundPubkey)
 

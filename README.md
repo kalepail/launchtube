@@ -1,8 +1,8 @@
-# Fee-Bump Service
+# Launchtube Service
 
 ## Base URL
 
-[https://feebump.sdf-ecosystem.workers.dev](https://feebump.sdf-ecosystem.workers.dev/gen?ttl=10&credits=10000000&count=1)
+[https://launchtube.sdf-ecosystem.workers.dev](https://launchtube.sdf-ecosystem.workers.dev/gen?ttl=10&credits=10000000&count=1)
 
 ## User Endpoints
 
@@ -20,16 +20,19 @@ Get the remaining credits (stoops) available for your account
 
 ### `POST` `/`
 
-Submit a transaction for fee-bumping
+Submit a transaction
 
 > [!IMPORTANT]  
-> Credits are used when calling *this* endpoint successfully. **NOT** when submitting the fee-bumped transaction to the Stellar network.
+> Credits are spent with progressive levels of granularity as the transaction moves through the backend
+> Initially upon submission 100_000 credits are spent
+> Assuming your tx simulates successfully, those 100_000 credits are refunded and the tx bid fee is spent
+> If your tx submission is successful the bid is refunded and the final tx fee is spent 
 
 #### Body
 
 - `xdr`
     
-    Transaction you want fee-bumped as an `XDR` encoded `String`
+    Transaction you want submitted as an `XDR` encoded `String`
     
 - `fee`
     
@@ -43,7 +46,7 @@ Submit a transaction for fee-bumping
 
 #### Return
 
-`XDR` encoded `String` value of your original `xdr` now fee-bumped. Also there’s a `X-Credits-Remaining` header containing the number of remaining credits for this account
+The response of the transaction submission assuming it was successful. Otherwise the error will be returned
 
 ## Admin Endpoints
 

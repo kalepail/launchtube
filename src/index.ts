@@ -14,9 +14,7 @@ const EAGER_CREDITS = 100_000
 const { preflight, corsify } = cors()
 const router = IttyRouter()
 
-/* TODO 
-	- Clean up the old feebump logic
-		Rename entire repo
+/* TODO
 	- Likely need some rate limiting around here
 		Throttle on dupe params
 		Throttle on sequence creation
@@ -179,15 +177,15 @@ router
 
 			transaction.sign(sequenceKeypair)
 
-			const sourceKeypair = Keypair.fromSecret(env.FEEBUMP_SK)
+			const fundKeypair = Keypair.fromSecret(env.FUND_SK)
 			const feeBumpTransaction = TransactionBuilder.buildFeeBumpTransaction(
-				sourceKeypair,
+				fundKeypair,
 				feeBumpFee.toString(),
 				transaction,
 				networkPassphrase
 			)
 
-			feeBumpTransaction.sign(sourceKeypair)
+			feeBumpTransaction.sign(fundKeypair)
 
 			const bidCredits = Number(feeBumpTransaction.fee)
 

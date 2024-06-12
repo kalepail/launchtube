@@ -5,7 +5,6 @@ build({
     bundle: true,
 	format: 'esm',
 	charset: 'utf8',
-	sourcemap: false,
 	outfile: "dist/index.js",
 	entryPoints: ["src/index.ts"],
 	minify: true,
@@ -15,6 +14,6 @@ build({
 	mainFields: ['worker', 'browser', 'module', 'jsnext', 'main'],
 	conditions: ['worker', 'browser', 'import', 'production'],
     platform: 'neutral',
-    plugins: [polyfillNode({})],
+    plugins: [polyfillNode()],
     external: ['cloudflare:workers']
 });
