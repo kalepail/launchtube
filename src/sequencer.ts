@@ -2,7 +2,6 @@ import { Keypair, Operation, StrKey, Transaction, TransactionBuilder } from "@st
 import { DurableObject } from "cloudflare:workers";
 import { getAccount, networkPassphrase, sendTransaction } from "./common";
 import { addUniqItemsToArray, getRandomNumber, removeValueFromArrayIfExists, wait } from "./helpers";
-import { StatusError } from "itty-router";
 
 /* TODO
     - Likely it only makes sense to have so many sequence accounts as there are hard Soroban limits
@@ -103,8 +102,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
             return poolSecret
 
         if (interval >= 30 && this.ready) // ensure transaction isn't in flight before timing out
-            // throw 'Sequencer transaction timed out. Please try again'        
-            throw new StatusError(400, 'Yikes!')
+            throw 'Sequencer transaction timed out. Please try again'        
 
         if (this.ready)
             this.createSequences(this.queue.splice(0, 25)) // No need to block the request waiting for this

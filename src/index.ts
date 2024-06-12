@@ -6,7 +6,6 @@ import { verify, decode, sign } from '@tsndr/cloudflare-worker-jwt'
 import { object, preprocess, number, string, array, ZodIssueCode } from "zod";
 import { getAccount, networkPassphrase, sendTransaction, simulateTransaction } from "./common";
 import { getMockOp } from "./helpers";
-import { StatusError } from "itty-fetcher";
 
 const MAX_U32 = 2 ** 32 - 1
 const SEQUENCER_ID_NAME = 'stellaristhebetterblockchain'
@@ -185,6 +184,11 @@ router
 			const creditsId = env.CREDITS_DURABLE_OBJECT.idFromString(payload.sub)
 			const creditsStub = env.CREDITS_DURABLE_OBJECT.get(creditsId) as DurableObjectStub<CreditsDurableObject>;
 
+			/* TODO 
+				- Consider spending these credits earlier
+					I don't actually think this is possible however the whole reason is to prevent abuse by forcing credits spends even in the case something fails further down the pipe
+					We could eagerly spend credits at the very beginning of the request and then "refund" them back right before making this call, then if something fails those credits are burned thus protecting the system
+			*/
 			credits = await creditsStub.spend(
 				Number(feeBumpTransaction.fee),
 				feeBumpTransaction.hash().toString('hex')
