@@ -8,7 +8,7 @@ import { getAccount, networkPassphrase, sendTransaction, simulateTransaction } f
 import { getMockOp } from "./helpers";
 
 const MAX_U32 = 2 ** 32 - 1
-const SEQUENCER_ID_NAME = 'stellaristhebetterblockchain'
+const SEQUENCER_ID_NAME = 'Test Launchtube ; June 2024'
 const EAGER_CREDITS = 100_000
 
 const { preflight, corsify } = cors()
@@ -35,13 +35,6 @@ router
 
 		if (!payload?.sub)
 			return error(401, 'Invalid')
-
-		const creditsId = env.CREDITS_DURABLE_OBJECT.idFromString(payload.sub)
-		const creditsStub = env.CREDITS_DURABLE_OBJECT.get(creditsId) as DurableObjectStub<CreditsDurableObject>;
-
-		// Spend some initial credits before doing any work as a spam prevention measure. These will be refunded if the transaction succeeds
-		// TODO at some point we should decide if the failure was user error or system error and refund the credits in case of system error
-		await creditsStub.spendEager(EAGER_CREDITS)
 
 		let res: any
 		let credits: number
@@ -96,6 +89,13 @@ router
 
 			if (debug)
 				return json({ xdr: x, func: f, auth: a, fee })
+
+			const creditsId = env.CREDITS_DURABLE_OBJECT.idFromString(payload.sub)
+			const creditsStub = env.CREDITS_DURABLE_OBJECT.get(creditsId) as DurableObjectStub<CreditsDurableObject>;
+	
+			// Spend some initial credits before doing any work as a spam prevention measure. These will be refunded if the transaction succeeds
+			// TODO at some point we should decide if the failure was user error or system error and refund the credits in case of system error
+			credits = await creditsStub.spendBefore(EAGER_CREDITS)
 
 			sequencerId = env.SEQUENCER_DURABLE_OBJECT.idFromName(SEQUENCER_ID_NAME);
 			sequencerStub = env.SEQUENCER_DURABLE_OBJECT.get(sequencerId) as DurableObjectStub<SequencerDurableObject>;
@@ -190,7 +190,7 @@ router
 			const bidCredits = Number(feeBumpTransaction.fee)
 
 			// Refund eager credits and spend the tx bid credits
-			await creditsStub.spendBefore(bidCredits, EAGER_CREDITS)
+			credits = await creditsStub.spendBefore(bidCredits, EAGER_CREDITS)
 
 			res = await sendTransaction(feeBumpTransaction.toXDR())
 

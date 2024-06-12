@@ -15,15 +15,7 @@ class_name = "SequencerDurableObject"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["FeeBumpDurableObject"]
-
-[[migrations]]
-tag = "v2"
-new_classes = ["SequencerDurableObject"]
-
-[[migrations]]
-tag = "v3"
-renamed_classes = [{from = "FeeBumpDurableObject", to = "CreditsDurableObject" }]
+new_classes = ["CreditsDurableObject", "SequencerDurableObject"]
 
 [[kv_namespaces]]
 binding = "SUDOS"

@@ -21,21 +21,17 @@ export class CreditsDurableObject extends DurableObject<Env> {
 		await this.ctx.storage.deleteAll();
 	}
 
-	async spendEager(credits: number) {
-		const existing_credits = await this.ctx.storage.get<number>('credits') || 0
-
-		if (existing_credits <= 0) 
-			throw 'No credits left'
-
-		await this.ctx.storage.put('credits', existing_credits - credits);
-	}
 	async spendBefore(credits: number, eagerCredits: number = 0) {
 		const existing_credits = (await this.ctx.storage.get<number>('credits') || 0) + eagerCredits
 
 		if (existing_credits <= 0) 
 			throw 'No credits left'
 
-		await this.ctx.storage.put('credits', existing_credits - credits);
+		const now_credits = existing_credits - credits
+
+		await this.ctx.storage.put('credits', now_credits);
+
+		return now_credits
 	}
 	async spendAfter(credits: number, tx: string, bidCredits: number = 0) {
 		const existing_credits = (await this.ctx.storage.get<number>('credits') || 0) + bidCredits
