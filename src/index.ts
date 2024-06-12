@@ -1,16 +1,24 @@
-import { xdr, Account, BASE_FEE, Keypair, Operation, StrKey, TransactionBuilder } from "@stellar/stellar-base";
+import { xdr, BASE_FEE, Keypair, Operation, StrKey, TransactionBuilder, Transaction } from "@stellar/stellar-base";
 import { FeeBumpDurableObject } from "./feebump";
 import { SequencerDurableObject } from "./sequencer";
 import { IttyRouter, RequestLike, cors, error, json, text, withParams } from 'itty-router'
 import { verify, decode, sign } from '@tsndr/cloudflare-worker-jwt'
-import { object, preprocess, number, string, array } from "zod";
-import { horizon, networkPassphrase, rpc } from "./common";
+import { object, preprocess, number, string, array, union, ZodIssueCode } from "zod";
+import { getAccount, networkPassphrase, sendTransaction, simulateTransaction } from "./common";
 import { getMockOp } from "./helpers";
 
 const MAX_U32 = 2 ** 32 - 1
 
 const { preflight, corsify } = cors()
 const router = IttyRouter()
+
+/* TODO 
+	- Clean up the old feebump logic
+		Remove old DO
+		Rename entire repo
+	- Likely need some rate limiting around here
+	- Still hitting issues during loadtest
+*/
 
 router
 	.options('*', preflight)
@@ -19,125 +27,145 @@ router
 		const id = env.SEQUENCER_DURABLE_OBJECT.idFromName('hello world');
 		const stub = env.SEQUENCER_DURABLE_OBJECT.get(id) as DurableObjectStub<SequencerDurableObject>;
 
-		try {
-			switch (request.params.command) {
-				case 'getSequence':
-					let sequenceSecret: string | undefined
+		switch (request.params.command) {
+			case 'getSequence':
+				let res: any
+				let sequenceSecret: string | undefined
 
-					try {
-						const formData = await request.formData()
-						const mock = formData.get('mock') === 'true'
-						const debug = formData.get('debug') === 'true'
+				try {
+					const formData = await request.formData()
+					const mock = formData.get('mock')
+					const isMock = ['true', 'xdr', 'op'].includes(mock)
+					const debug = formData.get('debug') === 'true'
 
-						const body = object({
-							func: string(),
-							auth: preprocess(
-								(val) => val ? JSON.parse(val as string) : undefined,
-								array(string())
-							),
-							fee: preprocess(Number, number().gte(Number(BASE_FEE)).lte(MAX_U32)),
-						});
-
-						const {
-							func: f,
-							auth: a,
-							fee,
-						} = body.parse(
-								mock
-								? await getMockOp()
-								: Object.fromEntries(formData)
-						)
-
-						if (debug)
-							return json({func: f, auth: a, fee})
-
-						const func = xdr.HostFunction.fromXDR(f, 'base64')
-						const auth = a?.map((auth) => xdr.SorobanAuthorizationEntry.fromXDR(auth, 'base64'))
-
-						sequenceSecret = await stub.getSequence()
-
-						const sequenceKeypair = Keypair.fromSecret(sequenceSecret)
-						const sequencePubkey = sequenceKeypair.publicKey()
-						const sequenceSource: any = await horizon.get(`/accounts/${sequencePubkey}`).then((res: any) => new Account(res.id, res.sequence))
-
-						let transaction = new TransactionBuilder(sequenceSource, {
-							fee: '0',
-							networkPassphrase
-						})
-							.addOperation(Operation.invokeContractFunction({
-								contract: StrKey.encodeContract(func.invokeContract().contractAddress().contractId()),
-								function: func.invokeContract().functionName().toString(),
-								args: func.invokeContract().args(),
-								auth
-							}))
-							.setTimeout(5 * 60)
-							.build()
-
-						transaction.sign(sequenceKeypair)
-
-						const sim = await rpc.post('/', {
-							jsonrpc: '2.0',
-							id: 8891,
-							method: 'simulateTransaction',
-							params: {
-								transaction: transaction.toXDR()
-							}
-						}).then((res: any) => {
-							if (res.result.error) // TODO handle state archival 
-								throw res.result
-
-							return res.result
-						})
-
-						const sorobanData = xdr.SorobanTransactionData.fromXDR(sim.transactionData, 'base64')
-						const resourceFee = sorobanData.resourceFee().toBigInt()
-						const feeBumpFee = (BigInt(fee) + resourceFee) / 2n
-
-						transaction = TransactionBuilder
-							.cloneFrom(transaction, {
-								fee: resourceFee.toString()
+					const schema = object({
+						xdr: string().optional(),
+						func: string().optional(),
+						auth: preprocess(
+							(val) => val ? JSON.parse(val as string) : undefined,
+							array(string()).optional()
+						),
+						fee: preprocess(Number, number().gte(Number(BASE_FEE)).lte(MAX_U32)),
+					}).superRefine((input, ctx) => {
+						if (!input.xdr && !input.func && !input.auth)
+							ctx.addIssue({
+								code: ZodIssueCode.custom,
+								message: 'Must pass either `xdr` or `func` and `auth`'
 							})
-							.setSorobanData(sorobanData)
-							.build()
-
-						transaction.sign(sequenceKeypair)
-
-						const sourceKeypair = Keypair.fromSecret(env.FEEBUMP_SK)
-						const feeBumpTransaction = TransactionBuilder.buildFeeBumpTransaction(
-							sourceKeypair,
-							feeBumpFee.toString(),
-							transaction,
-							networkPassphrase
-						)
-
-						feeBumpTransaction.sign(sourceKeypair)
-
-						const data = new FormData()
-
-						data.set('tx', feeBumpTransaction.toXDR())
-
-						const res = await horizon.post('/transactions', data)
-
-						return json(res)
-					} finally {
-						// TODO if this fails we'd lose the sequence keypair. We should be storing these in a KV I think
-
-						if (sequenceSecret)
-							await stub.returnSequence(sequenceSecret)
-					}
-				case 'getData':
-					const keys = [...(await stub.getData())]
-
-					return json({
-						count: keys.length,
-						keys
+						else if (input.xdr && (input.func || input.auth))
+							ctx.addIssue({
+								code: ZodIssueCode.custom,
+								message: '`func` and `auth` must be omitted when passing `xdr`'
+							})
+						else if (!input.xdr && !(input.func && input.auth))
+							ctx.addIssue({
+								code: ZodIssueCode.custom,
+								message: '`func` and `auth` are both required when omitting `xdr`'
+							})
 					})
-				default:
-					return error(404)
-			}
-		} catch (err: any) {
-			console.error(err);
-			return error(400, err)
+
+					const {
+						xdr: x,
+						func: f,
+						auth: a,
+						fee,
+					} = schema.parse(
+						isMock && env.ENV === 'development' 
+							? await getMockOp(mock) // Only ever mock in development
+							: Object.fromEntries(formData)
+					)
+
+					let transaction
+
+					if (debug)
+						return json({ xdr: x, func: f, auth: a, fee })
+
+					sequenceSecret = await stub.getSequence()
+
+					const sequenceKeypair = Keypair.fromSecret(sequenceSecret)
+					const sequencePubkey = sequenceKeypair.publicKey()
+					const sequenceSource = await getAccount(sequencePubkey)
+
+					let func: xdr.HostFunction
+					let auth: xdr.SorobanAuthorizationEntry[] | undefined
+
+					// Passing `xdr`
+					if (x) {
+						const op = new Transaction(x, networkPassphrase).operations[0] as Operation.InvokeHostFunction
+
+						func = op.func
+						auth = op.auth
+					} 
+					
+					// Passing `func` and `auth`
+					else if (f && a) {
+						func = xdr.HostFunction.fromXDR(f, 'base64')
+						auth = a?.map((auth) => xdr.SorobanAuthorizationEntry.fromXDR(auth, 'base64'))
+					}
+
+					else
+						throw 'Invalid request'
+
+					const invokeContract = func.invokeContract()
+					const contract = StrKey.encodeContract(invokeContract.contractAddress().contractId())
+
+					transaction = new TransactionBuilder(sequenceSource, {
+						fee: '0',
+						networkPassphrase
+					})
+						.addOperation(Operation.invokeContractFunction({
+							contract,
+							function: invokeContract.functionName().toString(),
+							args: invokeContract.args(),
+							auth
+						}))
+						.setTimeout(5 * 60)
+						.build()
+
+					transaction.sign(sequenceKeypair)
+
+					const sim = await simulateTransaction(transaction.toXDR())
+
+					/* TODO 
+						- Should we check that we have the right auth? Might be a fools errand if simulation can't catch it
+							I think we can review the included results[0].auth array and ensure it's been entirely included in the transaction we're about to submit
+					*/
+
+					const sorobanData = xdr.SorobanTransactionData.fromXDR(sim.transactionData, 'base64')
+					const resourceFee = sorobanData.resourceFee().toBigInt()
+					const feeBumpFee = (BigInt(fee) + resourceFee) / 2n // bit of jank for the way `buildFeeBumpTransaction` works with multiplying the fee by ((number of ops + 1) * fee)
+
+					transaction = TransactionBuilder
+						.cloneFrom(transaction, {
+							fee: resourceFee.toString(), // inner tx fee cannot be less than the resource fee or the tx will be invalid
+							sorobanData
+						})
+						.build()
+
+					transaction.sign(sequenceKeypair)
+
+					const sourceKeypair = Keypair.fromSecret(env.FEEBUMP_SK)
+					const feeBumpTransaction = TransactionBuilder.buildFeeBumpTransaction(
+						sourceKeypair,
+						feeBumpFee.toString(),
+						transaction,
+						networkPassphrase
+					)
+
+					feeBumpTransaction.sign(sourceKeypair)
+
+					res = await sendTransaction(feeBumpTransaction.toXDR())
+				} finally {
+					// if this fails we'd lose the sequence keypair. Fine because sequences are derived and thus re-discoverable
+					if (sequenceSecret)
+						await stub.returnSequence(sequenceSecret)
+				}
+
+				return json(res)
+			case 'getData':
+				return json(await stub.getData())
+			default:
+				return error(404)
 		}
 	})
 	.get('/gen', async (request: RequestLike, env: Env, _ctx: ExecutionContext) => {
@@ -269,7 +297,10 @@ const handler = {
 	fetch: (request: Request, env: Env, ctx: ExecutionContext) =>
 		router
 			.fetch(request, env, ctx)
-			.catch(error)
+			.catch((err) => {
+				console.error(err)
+				return error(400, err)
+			})
 			.then((r) => corsify(r, request))
 }
 

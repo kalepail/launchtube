@@ -35,3 +35,6 @@ command = "npm run build"
 
 [define]
 global = "globalThis"
+
+[vars]
+ENV = "production"

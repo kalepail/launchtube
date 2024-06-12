@@ -1,28 +1,41 @@
-import { Account, Keypair, Operation, Transaction, TransactionBuilder } from "@stellar/stellar-base";
+import { Keypair, Operation, StrKey, Transaction, TransactionBuilder } from "@stellar/stellar-base";
 import { DurableObject } from "cloudflare:workers";
-import { horizon, networkPassphrase } from "./common";
+import { getAccount, networkPassphrase, sendTransaction } from "./common";
+import { addUniqItemsToArray, getRandomNumber, removeValueFromArrayIfExists, wait } from "./helpers";
+
+/* TODO
+    - Likely it only makes sense to have so many sequence accounts as there are hard Soroban limits
+        Past probably 100 we should start error'ing with a "wait a bit" message
+        And eventually, maybe sooner rather than later, we should switch the whole thing to a queue system vs a synchronous system 
+*/
 
 export class SequencerDurableObject extends DurableObject<Env> {
     private ready: boolean = true
-    private queue: Keypair[] = []
+    private queue: string[] = []
+    private no: string[] = []
 
     constructor(ctx: DurableObjectState, env: Env) {
         super(ctx, env);
     }
 
     public async getData() {
-        return this.ctx.storage.list()
+        const pool = await this.ctx.storage.list({ prefix: 'pool:'})
+        const field = await this.ctx.storage.list({ prefix: 'field:'})
+        const index = await this.ctx.storage.get<number>('index') || 0
+
+        return {
+            index,
+            no: this.no.map((key) => Keypair.fromSecret(key).publicKey()),
+            poolCount: pool.size,
+            fieldCount: field.size,
+            pool: [...pool.entries()].map(([key]) => Keypair.fromSecret(key.split(':')[1]).publicKey()),
+            field: [...field.entries()].map(([key]) => Keypair.fromSecret(key.split(':')[1]).publicKey())
+        }
     }
-    public async getSequence() {
+    public async getSequence(): Promise<string> {
         const items = await this.ctx.storage.list<boolean>({ prefix: 'pool:', limit: 1 })
 
-        if (!items.size) {
-            const sequenceKeypair = Keypair.random()
-            await this.queueSequence(sequenceKeypair)
-            return sequenceKeypair.secret()
-        } 
-        
-        else {
+        if (items.size) {
             const [[key]] = items.entries()
             const sequenceSecret = key.split(':')[1]
 
@@ -30,6 +43,16 @@ export class SequencerDurableObject extends DurableObject<Env> {
             this.ctx.storage.put(`field:${sequenceSecret}`, true)
 
             return sequenceSecret
+        } else {
+            const sequenceSecret = await this.queueSequence()
+            const poolSecret = await this.pollSequence(sequenceSecret)
+
+            if (poolSecret)
+                this.ctx.storage.delete(`pool:${poolSecret}`)
+
+            this.ctx.storage.put(`field:${poolSecret || sequenceSecret}`, true)
+
+            return poolSecret || sequenceSecret
         }
     }
     public async returnSequence(sequenceSecret: string) {
@@ -37,65 +60,110 @@ export class SequencerDurableObject extends DurableObject<Env> {
         this.ctx.storage.put(`pool:${sequenceSecret}`, true)
     }
 
-    private async queueSequence(sequenceKeypair: Keypair, add: boolean = true) {
-        if (await this.ctx.storage.get<string>(`pool:${sequenceKeypair.secret()}`))
-            return
+    // 100 requests for new sequences comes in
+    // All are queued up and begin to wait
+    // Once the fund account is ready the first 25 are taken from the queue
+    // A transaction is created to create the accounts and submitted
+    // In case of success or failure we need to communicate that back to the 25 pending requests
+    // Repeat taking the next batch of queued sequences 
 
-        if (add)
-            this.queue = [
-                ...new Set([
-                    ...this.queue,
-                    sequenceKeypair
-                ])
-            ]
+    private async queueSequence() {
+        const index = await this.ctx.storage.get<number>('index') || 0
+        const indexBuffer = Buffer.alloc(4);
+        
+        indexBuffer.writeUInt32BE(index);
+
+        const sequenceBuffer = Buffer.concat([
+            StrKey.decodeEd25519SecretSeed(this.env.FEEBUMP_SK),
+            indexBuffer
+        ])
+        const sequenceSeed = await crypto.subtle.digest({ name: 'SHA-256' }, sequenceBuffer);
+        const sequenceKeypair = Keypair.fromRawEd25519Seed(Buffer.from(sequenceSeed))
+        const sequenceSecret = sequenceKeypair.secret()
+
+        this.queue = addUniqItemsToArray(this.queue, sequenceSecret)
+
+        await this.ctx.storage.put('index', index + 1)
+
+        return sequenceKeypair.secret()
+    }
+    private async pollSequence(sequenceSecret: string, interval = 0): Promise<string | null> {
+        const poolSecret = await this.lookupPoolSequence(sequenceSecret)
+
+        if (removeValueFromArrayIfExists(this.no, sequenceSecret)) {
+            // We failed, but before we despair, let's see if there are any pool sequences available
+            if (poolSecret)
+                return poolSecret
+            else
+                throw 'Sequencer transaction failed. Please try again'
+        }
+
+        if (poolSecret)
+            return poolSecret
+
+        if (interval >= 30 && this.ready) // ensure transaction isn't in flight before timing out
+            throw 'Sequencer transaction timed out. Please try again'        
 
         if (this.ready)
-            await this.createSequences(this.queue.splice(0, 100))
-        else {
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-            await this.queueSequence(sequenceKeypair, false)
+            this.createSequences(this.queue.splice(0, 25)) // No need to block the request waiting for this
+
+        interval++
+        await wait()
+        return this.pollSequence(sequenceSecret, interval)
+    }
+    private async lookupPoolSequence(sequenceSecret: string) {
+        // Lookup our own key first
+        if (await this.ctx.storage.get<boolean>(`pool:${sequenceSecret}`))
+            return sequenceSecret
+
+        const items = await this.ctx.storage.list<boolean>({ prefix: 'pool:', limit: 1 })
+
+        // It's possible during the retry loop a pool sequence comes available at which point we should pull out our pending sequence and use the pool sequence
+        if (items.size) {
+            removeValueFromArrayIfExists(this.queue, sequenceSecret)
+
+            const [[key]] = items.entries()
+            return key.split(':')[1]
         }
     }
-    private async createSequences(queue: Keypair[]) {
+    private async createSequences(queue: string[]) {
         try {
-            if (!queue.length)
-                return
-
             this.ready = false
 
-            const sourceKeypair = Keypair.fromSecret(this.env.FEEBUMP_SK)
-            const sourcePubkey = sourceKeypair.publicKey()
+            const fundKeypair = Keypair.fromSecret(this.env.FEEBUMP_SK)
+            const fundPubkey = fundKeypair.publicKey()
+            const fundSource = await getAccount(fundPubkey)
 
-            const source = await horizon.get(`/accounts/${sourcePubkey}`).then((account: any) => new Account(account.id, account.sequence))
-
-            let transaction: TransactionBuilder | Transaction = new TransactionBuilder(source, {
-                fee: (10_000).toString(),
+            let transaction: TransactionBuilder | Transaction = new TransactionBuilder(fundSource, {
+                fee: getRandomNumber(10_000, 100_000).toString(),
                 networkPassphrase,
             })
 
             for (const sequence of queue) {
                 transaction
                     .addOperation(Operation.createAccount({
-                        destination: sequence.publicKey(),
+                        destination: Keypair.fromSecret(sequence).publicKey(),
                         startingBalance: '1'
                     }))
             }
 
             transaction = transaction
-                .setTimeout(5 * 60)
+                .setTimeout(60)
                 .build()
 
-            transaction.sign(sourceKeypair)
+            transaction.sign(fundKeypair)
 
-            const data = new FormData()
+            await sendTransaction(transaction.toXDR())
 
-            data.set('tx', transaction.toXDR())
-
-            await horizon.post('/transactions', data)
-
-            for (const sequence of queue) {
-                this.ctx.storage.put(`pool:${sequence.secret()}`, true)
+            // If we fail here we'll lose the sequence keypairs. Keypairs should be derived so they can always be recreated
+            for (const sequenceSecret of queue) {
+                this.ctx.storage.put(`pool:${sequenceSecret}`, true)
             }
+        } catch(err) {
+            this.no = addUniqItemsToArray(this.no, ...queue.map((sequence) => Keypair.fromSecret(sequence).secret()))
+            console.log(err);
+            await wait(5000);
+            // No need to throw here as we'll catch tx errors elsewhere in the lookupSequence
         } finally {
             this.ready = true
         }

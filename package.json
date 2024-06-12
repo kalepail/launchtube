@@ -12,11 +12,12 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240605.0",
+    "@stellar/stellar-sdk": "^12.0.1",
     "esbuild": "^0.21.5",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "loadtest": "^8.0.9",
     "typescript": "^5.4.5",
-    "wrangler": "^3.60.1"
+    "wrangler": "^3.60.2"
   },
   "dependencies": {
     "@stellar/stellar-base": "git+https://github.com/stellar/js-stellar-base.git#inner-fee-fix",

@@ -2,11 +2,6 @@ import { Keypair, Transaction, TransactionBuilder } from "@stellar/stellar-base"
 import { DurableObject } from "cloudflare:workers";
 import { networkPassphrase } from "./common";
 
-/* TODO 
-	- Switch to accepting auth entries
-		Will require creating a sequence account pool
-*/
-
 export class FeeBumpDurableObject extends DurableObject<Env> {
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
@@ -48,12 +43,12 @@ export class FeeBumpDurableObject extends DurableObject<Env> {
 			!existing_credits
 			|| Number.isNaN(existing_credits)
 			|| existing_credits <= 0
-		) throw new Error('No credits left')
+		) throw 'No credits left'
 
 		const now_credits = existing_credits - Number(feebump.fee);
 
 		if (now_credits < 0)
-			throw new Error('Not enough credits')
+			throw 'Not enough credits'
 
 		await this.ctx.storage.put('credits', now_credits);
 
