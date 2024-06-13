@@ -67,6 +67,8 @@ export class SequencerDurableObject extends DurableObject<Env> {
             - Don't love this. 
                 Ideally we switch to a queue system that can handle this in a more elegant manner
                 On the plus side needing to spin up new sequence accounts shouldn't be terribly common
+            - This might have broken something as it seems it's also leaving orphaned no's
+                It's possible this was due to trying to create already created accounts though
         */
         if (this.queue.length >= 25)
             throw 'Too many sequences queued. Please try again later'

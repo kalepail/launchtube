@@ -1,4 +1,4 @@
-import { xdr, BASE_FEE, Keypair, Operation, StrKey, TransactionBuilder, Transaction } from "@stellar/stellar-base";
+import { xdr, BASE_FEE, Keypair, Operation, StrKey, TransactionBuilder, Transaction, Address } from "@stellar/stellar-base";
 import { CreditsDurableObject } from "./credits";
 import { SequencerDurableObject } from "./sequencer";
 import { IttyRouter, RequestLike, cors, error, json, text, withParams } from 'itty-router'
@@ -21,6 +21,12 @@ const router = IttyRouter()
 		Eager credit spending may be a sufficient deterrent
 	- Probably need to move to a queue system and polling so we don’t have to keep connections open for submissions that may take awhile to get through during times of high throughput
 		This probably makes the whole system a bit more resilient
+	- Support generic transaction fee bumping?
+		I think folks will want this, otherwise they'll need to maintain both Soroban submission flows and Classic submission flows
+			No XLM needed for Soroban
+			XLM needed for Stellar
+			Bit of an oof
+		At the very least we should support all the Soroban ops incl. `Operation.ExtendFootprintTTL` and `Operation.RestoreFootprint`
 */
 
 router
@@ -93,7 +99,7 @@ router
 
 			const creditsId = env.CREDITS_DURABLE_OBJECT.idFromString(payload.sub)
 			const creditsStub = env.CREDITS_DURABLE_OBJECT.get(creditsId) as DurableObjectStub<CreditsDurableObject>;
-	
+
 			// Spend some initial credits before doing any work as a spam prevention measure. These will be refunded if the transaction succeeds
 			// TODO at some point we should decide if the failure was user error or system error and refund the credits in case of system error
 			credits = await creditsStub.spendBefore(EAGER_CREDITS)
@@ -111,7 +117,17 @@ router
 
 			// Passing `xdr`
 			if (x) {
-				const op = new Transaction(x, networkPassphrase).operations[0] as Operation.InvokeHostFunction
+				const txn = new Transaction(x, networkPassphrase)
+
+				if (txn.operations.length !== 1)
+					throw 'Must include only one Soroban operation'
+
+				for (const op of txn.operations) {
+					if (op.type !== 'invokeHostFunction')
+						throw 'Must include only one operation of type `invokeHostFunction`'
+				}
+
+				const op = txn.operations[0] as Operation.InvokeHostFunction
 
 				func = op.func
 				auth = op.auth
@@ -125,6 +141,29 @@ router
 
 			else
 				throw 'Invalid request'
+
+			if (func.switch().name !== 'hostFunctionTypeInvokeContract')
+				throw 'Operation func must be of type `hostFunctionTypeInvokeContract`'
+
+			for (const a of auth || []) {
+				switch (a.credentials().switch().name) {
+					case 'sorobanCredentialsSourceAccount':
+						throw '`sorobanCredentialsSourceAccount` credentials are not supported'
+					case 'sorobanCredentialsAddress':
+						// Check to ensure the auth isn't using any system addresses
+						if (a.credentials().address().address().switch().name === 'scAddressTypeAccount') {
+							const pk = a.credentials().address().address().accountId()
+
+							if (
+								pk.switch().name === 'publicKeyTypeEd25519'
+								&& Address.account(pk.ed25519()).toString() === sequencePubkey
+							) throw '`scAddressTypeAccount` credentials are invalid'
+						}
+						break;
+					default:
+						throw 'Invalid credentials'
+				}
+			}
 
 			const invokeContract = func.invokeContract()
 			const contract = StrKey.encodeContract(invokeContract.contractAddress().contractId())
@@ -140,6 +179,7 @@ router
 						We could probably snipe the tx source if `xdr` was the arg and use it for the op source as well as any provided auth source itself
 							We'd just need to ensure the source wasn't a system provided sequence account
 						I actually don't think this will work as `credentials: [sorobanCredentialsSourceAccount]` borrows from the tx signature which we're entirely co-opting
+							That is unless the dev can guess the sequence...in which case bad...so we should block that
 						Thus users/devs will need to never use an important tx or op source when crafting launchtube transactions
 				*/
 				.addOperation(Operation.invokeContractFunction({
@@ -158,6 +198,7 @@ router
 			/* TODO 
 				- Should we check that we have the right auth? Might be a fools errand if simulation can't catch it
 					I think we can review the included results[0].auth array and ensure it's been entirely included in the transaction we're about to submit
+				- We should also potentially check the credential address source and ensure we're not about to sign for something that's utilizing any system addresses
 			*/
 
 			const sorobanData = xdr.SorobanTransactionData.fromXDR(sim.transactionData, 'base64')
@@ -336,7 +377,7 @@ const handler = {
 			.catch((err) => {
 				console.error(err);
 				return error(
-					typeof err?.status === 'number' ? err.status : 400, 
+					typeof err?.status === 'number' ? err.status : 400,
 					err instanceof Error ? err?.message : err
 				)
 			})

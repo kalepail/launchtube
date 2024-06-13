@@ -1,4 +1,4 @@
-import { Account, authorizeEntry, Keypair, nativeToScVal, Operation, StrKey, TransactionBuilder, xdr } from "@stellar/stellar-base"
+import { Account, authorizeEntry, Keypair, nativeToScVal, Operation, TransactionBuilder, xdr } from "@stellar/stellar-base"
 import { networkPassphrase, simulateTransaction } from "./common"
 
 const nativeContract = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'
