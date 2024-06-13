@@ -10,6 +10,16 @@ export function wait(ms: number = 1000) {
     return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+export function arraysEqualUnordered(arr1: any[], arr2: any[]) {
+    if (arr1.length !== arr2.length) 
+        return false;
+
+    arr1.sort();
+    arr2.sort();
+
+    return arr1.every((item, i) => item === arr2[i]);
+}
+
 export function addUniqItemsToArray(arr: any[], ...items: any[]) {
     return [
         ...new Set([
@@ -67,7 +77,7 @@ export async function getMockData(type: 'xdr' | 'op' | undefined = undefined) {
         const authUnsigned = xdr.SorobanAuthorizationEntry.fromXDR(authXDR, 'base64')
         const authSigned = await authorizeEntry(authUnsigned, testKeypair, sim.latestLedger + 60, networkPassphrase)
 
-        op.auth!.push(authSigned) // comment this out to fail submission
+        op.auth!.push(authSigned)
     }
 
     const fee = getRandomNumber(10_000, 100_000).toString()

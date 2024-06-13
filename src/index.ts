@@ -1,11 +1,11 @@
-import { xdr, BASE_FEE, Keypair, Operation, StrKey, TransactionBuilder, Transaction, Address } from "@stellar/stellar-base";
+import { xdr, BASE_FEE, Keypair, Operation, StrKey, TransactionBuilder, Transaction, Address, scValToNative } from "@stellar/stellar-base";
 import { CreditsDurableObject } from "./credits";
 import { SequencerDurableObject } from "./sequencer";
 import { IttyRouter, RequestLike, cors, error, json, text, withParams } from 'itty-router'
 import { verify, decode, sign } from '@tsndr/cloudflare-worker-jwt'
 import { object, preprocess, number, string, array, ZodIssueCode } from "zod";
 import { getAccount, networkPassphrase, sendTransaction, simulateTransaction } from "./common";
-import { getMockData } from "./helpers";
+import { arraysEqualUnordered, getMockData } from "./helpers";
 
 const MAX_U32 = 2 ** 32 - 1
 const SEQUENCER_ID_NAME = 'Test Launchtube ; June 2024'
@@ -141,10 +141,6 @@ router
 			if (func.switch().name !== 'hostFunctionTypeInvokeContract')
 				throw 'Operation func must be of type `hostFunctionTypeInvokeContract`'
 
-			/* TODO !!!
-				- Should we check that we have the right auth? Might be a fools errand if simulation can't catch it
-					I think we can review the included `auth` array and ensure there are no empty credentials
-			*/
 			// Do a full audit of the auth entries
 			for (const a of auth || []) {
 				switch (a.credentials().switch().name) {
@@ -185,6 +181,17 @@ router
 			transaction.sign(sequenceKeypair)
 
 			const sim = await simulateTransaction(transaction.toXDR())
+
+			/* NOTE
+				- Check that we have the right auth
+					The transaction ops before simulation and after simulation should be identical
+					Submitted ops should already be entirely valid thus simulation shouldn't alter them in any way
+			*/
+			if (!arraysEqualUnordered(
+				(transaction.operations[0] as Operation.InvokeHostFunction).auth?.map((a) => a.toXDR('base64')) || [],
+				sim.results[0].auth	|| []
+			)) throw 'Invalid auth'
+
 			const sorobanData = xdr.SorobanTransactionData.fromXDR(sim.transactionData, 'base64')
 			const resourceFee = sorobanData.resourceFee().toBigInt()
 			/* NOTE 
