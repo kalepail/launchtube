@@ -19,8 +19,6 @@ const router = IttyRouter()
 		Throttle on dupe params
 		Throttle on sequence creation
 		Eager credit spending may be a sufficient deterrent
-	- Probably need to move to a queue system and polling so we don’t have to keep connections open for submissions that may take awhile to get through during times of high throughput
-		This probably makes the whole system a bit more resilient
 	- Support generic transaction fee bumping?
 		I think folks will want this, otherwise they'll need to maintain both Soroban submission flows and Classic submission flows
 			No XLM needed for Soroban
@@ -92,8 +90,6 @@ router
 					: Object.fromEntries(formData)
 			)
 
-			let transaction
-
 			if (debug)
 				return json({ xdr: x, func: f, auth: a, fee })
 
@@ -117,17 +113,17 @@ router
 
 			// Passing `xdr`
 			if (x) {
-				const txn = new Transaction(x, networkPassphrase)
+				const t = new Transaction(x, networkPassphrase)
 
-				if (txn.operations.length !== 1)
+				if (t.operations.length !== 1)
 					throw 'Must include only one Soroban operation'
 
-				for (const op of txn.operations) {
+				for (const op of t.operations) {
 					if (op.type !== 'invokeHostFunction')
 						throw 'Must include only one operation of type `invokeHostFunction`'
 				}
 
-				const op = txn.operations[0] as Operation.InvokeHostFunction
+				const op = t.operations[0] as Operation.InvokeHostFunction
 
 				func = op.func
 				auth = op.auth
@@ -145,6 +141,11 @@ router
 			if (func.switch().name !== 'hostFunctionTypeInvokeContract')
 				throw 'Operation func must be of type `hostFunctionTypeInvokeContract`'
 
+			/* TODO !!!
+				- Should we check that we have the right auth? Might be a fools errand if simulation can't catch it
+					I think we can review the included `auth` array and ensure there are no empty credentials
+			*/
+			// Do a full audit of the auth entries
 			for (const a of auth || []) {
 				switch (a.credentials().switch().name) {
 					case 'sorobanCredentialsSourceAccount':
@@ -168,20 +169,10 @@ router
 			const invokeContract = func.invokeContract()
 			const contract = StrKey.encodeContract(invokeContract.contractAddress().contractId())
 
-			transaction = new TransactionBuilder(sequenceSource, {
+			let transaction = new TransactionBuilder(sequenceSource, {
 				fee: '0',
 				networkPassphrase
 			})
-				/* NOTE 
-					- This doesn't copy the op source which may break auth scenarios which borrow from the tx or op source
-						This is done as a safety precaution to ensure you can never use the system provided sequence account in your auth entries
-						It's possible we could ease up on this in the future with some careful checking
-						We could probably snipe the tx source if `xdr` was the arg and use it for the op source as well as any provided auth source itself
-							We'd just need to ensure the source wasn't a system provided sequence account
-						I actually don't think this will work as `credentials: [sorobanCredentialsSourceAccount]` borrows from the tx signature which we're entirely co-opting
-							That is unless the dev can guess the sequence...in which case bad...so we should block that
-						Thus users/devs will need to never use an important tx or op source when crafting launchtube transactions
-				*/
 				.addOperation(Operation.invokeContractFunction({
 					contract,
 					function: invokeContract.functionName().toString(),
@@ -194,13 +185,6 @@ router
 			transaction.sign(sequenceKeypair)
 
 			const sim = await simulateTransaction(transaction.toXDR())
-
-			/* TODO 
-				- Should we check that we have the right auth? Might be a fools errand if simulation can't catch it
-					I think we can review the included results[0].auth array and ensure it's been entirely included in the transaction we're about to submit
-				- We should also potentially check the credential address source and ensure we're not about to sign for something that's utilizing any system addresses
-			*/
-
 			const sorobanData = xdr.SorobanTransactionData.fromXDR(sim.transactionData, 'base64')
 			const resourceFee = sorobanData.resourceFee().toBigInt()
 			/* NOTE 
