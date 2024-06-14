@@ -6,6 +6,10 @@ import { vars, wait } from "./helpers";
         Doesn't look like they're exported so we'll need to manually copy that file over
 */
 
+export const MAX_U32 = 2 ** 32 - 1
+export const SEQUENCER_ID_NAME = 'Test Launchtube ; June 2024'
+export const EAGER_CREDITS = 100_000
+
 export async function getAccount(env: Env, publicKey: string) {
     const { rpc } = vars(env)
 
