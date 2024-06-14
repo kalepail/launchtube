@@ -33,8 +33,8 @@ Submit a transaction
 > [!IMPORTANT]  
 > Credits are spent with progressive levels of granularity as the transaction moves through the backend
 >
-> * Initially upon submission 100_000 credits are spent
-> * Assuming your tx simulates successfully, those 100_000 credits are refunded and the simulation bid fee is spent
+> * Initially upon submission `100_000` credits are spent
+> * Assuming your tx simulates successfully, those `100_000` credits are refunded and the simulation bid fee is spent
 > * If your tx submission is successful the bid fee is refunded and the final tx fee is spent
 >
 > This ensures a fair and predictable system without restrictive rate limits by incentiving properly formed transactions
