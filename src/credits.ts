@@ -11,14 +11,14 @@ export class CreditsDurableObject extends DurableObject<Env> {
 	}
 
 	async init(ttl: number, credits: number) {
-		await this.ctx.storage.put('credits', credits);
-		await this.ctx.storage.setAlarm(Date.now() + ttl * 1000);
+		this.ctx.storage.put('credits', credits);
+		this.ctx.storage.setAlarm(Date.now() + ttl * 1000);
 	}
 	async info() {
 		return this.ctx.storage.get('credits')
 	}
 	async delete() {
-		await this.ctx.storage.deleteAll();
+		return this.ctx.storage.deleteAll();
 	}
 
 	async spendBefore(credits: number, eagerCredits: number = 0) {

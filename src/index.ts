@@ -27,8 +27,8 @@ const router = IttyRouter()
 
 router
 	.options('*', preflight)
-	// Public endpoints
 	.all('*', withParams)
+	// Public endpoints
 	.get('/', apiTokenInfo)
 	.post('/', apiLaunch)
 	// Private endpoints
