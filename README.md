@@ -14,6 +14,8 @@
 
 - `Authorization` `Bearer {jwt token}`
 
+If you need a Testnet jwt token just ask in the `#passkeys` channel in our [Discord server](https://discord.gg/stellardev). 
+
 ---
 
 ### `POST` `/`
