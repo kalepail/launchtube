@@ -4,7 +4,7 @@
 
 ## Base URL
 
-`https://launchtube.sdf-ecosystem.workers.dev`
+* `Testnet` `https://launchtube.sdf-ecosystem.workers.dev`
 
 ## Public Endpoints
 
@@ -14,7 +14,7 @@
 
 - `Authorization` `Bearer {jwt token}`
 
-If you need a Testnet jwt token just ask in the `#passkeys` channel in our [Discord server](https://discord.gg/stellardev). 
+If you need a Testnet jwt token just ask in the `#passkeys` channel in our [Discord server](https://discord.gg/stellardev). We give them out like candy.
 
 ---
 
