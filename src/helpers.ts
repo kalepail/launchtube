@@ -1,10 +1,9 @@
-import { Account, authorizeEntry, Keypair, nativeToScVal, Operation, TransactionBuilder, xdr } from "@stellar/stellar-base"
+import { Account, authorizeEntry, Keypair, nativeToScVal, Operation, StrKey, TransactionBuilder, xdr } from "@stellar/stellar-base"
 import { networkPassphrase, simulateTransaction } from "./common"
 
+// TODO this should be a env var
 const nativeContract = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'
 // const nativeContract = 'CB64D3G7SM2RTH6JSGG34DDTFTQ5CFDKVDZJZSODMCX4NJ2HV2KN7OHT'
-const testKeypair = Keypair.fromSecret('SDBU42TUE6HKIO3YBN3K66X5CC4EOUGUPAFUX7UFXXRMLPGECEUR2ZN4') // GASY26VMSOOCWFA2ZASHW2ZDIDZUQVXGVVKOGKSIDDTDWNSLIF6KKKCD
-const testPubkey = testKeypair.publicKey()
 
 export function wait(ms: number = 1000) {
     return new Promise((resolve) => setTimeout(resolve, ms))
@@ -47,8 +46,11 @@ export function getRandomNumber(min: number, max: number) {
 }
 
 export async function getMockData(type: 'xdr' | 'op' | undefined = undefined) {
-    const mockKeypair = Keypair.fromRawEd25519Seed(Buffer.alloc(32)) // NOTE this isn't the actual zero address
-    const mockPubkey = mockKeypair.publicKey()
+    // TODO we should ensure this address is funded before trying to use it. Should also be an env var only on dev
+    const testKeypair = Keypair.fromSecret('SDBU42TUE6HKIO3YBN3K66X5CC4EOUGUPAFUX7UFXXRMLPGECEUR2ZN4') // GASY26VMSOOCWFA2ZASHW2ZDIDZUQVXGVVKOGKSIDDTDWNSLIF6KKKCD
+    const testPubkey = testKeypair.publicKey()
+
+    const mockPubkey = StrKey.encodeEd25519PublicKey(Buffer.alloc(32))
     const mockSource = new Account(mockPubkey, '0')
 
     const transaction = new TransactionBuilder(mockSource, {
