@@ -50,6 +50,7 @@ The response of the transaction submission assuming it was successful. Otherwise
 
 <details closed>
 <summary><h2>Private Endpoints</h2></summary>
+
 ### `GET` `/gen`
 
 Generate a list of new credit accounts
