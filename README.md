@@ -1,6 +1,8 @@
 # Launchtube Service
 
-<!-- TODO describe the Launchtube service itself -->
+Getting Stellar transactions successfully submitted to the network can be a chore. You've got a lot to think about between fees, sequence numbers, block times, retries, rate limits, ledger limits, and more. This gets even more tricky when trying to submit Stellar smart wallet operations. Soroban contracts can't pay Stellar transaction fees, they maintain nonces not sequence numbers. 
+
+The Launchtube service aims to alleviate all of these challenges and complexities by giving you an API which accepts Soroban ops and then handles getting those entries successfully submitted to the network. No XLM or native G-addresses required! Just simulate your Soroban ops, submit that mock transaction to Launchtube, and we'll handle getting it onchain. Too easy!
 
 ## Base URL
 
