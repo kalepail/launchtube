@@ -16,16 +16,6 @@
 
 ---
 
-### `GET` `/`
-
-Get the remaining credits (stoops) available for your token
-
-#### Return
-
-`String` numeric value of the token's remaining credits (stroops)
-
----
-
 ### `POST` `/`
 
 Submit a transaction
@@ -68,6 +58,16 @@ OR
 #### Return
 
 The response of the transaction submission as `JSON` assuming it was successful. Otherwise a (hopefully) useful `JSON` error.
+
+---
+
+### `GET` `/`
+
+Get the remaining credits (stoops) available for your token
+
+#### Return
+
+`String` numeric value of the token's remaining credits (stroops)
 
 ---
 
