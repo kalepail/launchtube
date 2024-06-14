@@ -4,7 +4,7 @@
 
 [https://launchtube.sdf-ecosystem.workers.dev](https://launchtube.sdf-ecosystem.workers.dev/gen?ttl=10&credits=10000000&count=1)
 
-## User Endpoints
+## Public Endpoints
 
 ### `GET` `/`
 
@@ -48,8 +48,8 @@ Submit a transaction
 
 The response of the transaction submission assuming it was successful. Otherwise the error will be returned
 
-## Admin Endpoints
-
+<details closed>
+<summary><h2>Private Endpoints</h2></summary>
 ### `GET` `/gen`
 
 Generate a list of new credit accounts
@@ -136,3 +136,4 @@ e.g.
 ]
 ```
 Sub is the key JWT `sub` claim and Tx is the transaction hash
+</details>
