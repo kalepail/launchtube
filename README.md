@@ -16,7 +16,7 @@ The Launchtube service aims to alleviate all of these challenges and complexitie
 
 - `Authorization` `Bearer {jwt token}`
 
-If you need a Testnet jwt token just ask in the `#passkeys` channel in our [Discord server](https://discord.gg/stellardev). We give them out like candy.
+If you need a Testnet JWT token just ask in the `#passkeys` channel in our [Discord server](https://discord.gg/stellardev). We give them out like candy.
 
 ---
 
