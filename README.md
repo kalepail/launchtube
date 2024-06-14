@@ -6,13 +6,17 @@
 
 ## Public Endpoints
 
-### `GET` `/`
-
-Get the remaining credits (stoops) available for your token
+### Authorization
 
 #### Headers
 
 - `Authorization` `Bearer {jwt token}`
+
+---
+
+### `GET` `/`
+
+Get the remaining credits (stoops) available for your token
 
 #### Return
 
@@ -58,7 +62,6 @@ OR
 #### Headers
 
 - `Content-Type` `x-www-form-urlencoded`
-- `Authorization` `Bearer {jwt token}`
 
 #### Return
 
@@ -68,6 +71,12 @@ The response of the transaction submission as `JSON` assuming it was successful.
 
 <details closed>
 <summary><h2>Private Endpoints</h2></summary>
+
+### Authorization
+
+#### Headers
+
+- `Authorization` `Bearer {auth token}`
 
 If you need an auth token let [tyler@stellar.org](mailto:tyler@stellar.org) know.
 
@@ -89,10 +98,6 @@ Generate a list of new credit JWT tokens
     
     The number of unique new tokens to generate (max of 100)
     
-#### Headers
-
-- `Authorization` `Bearer {auth token}`
-    
 #### Return
 
 `JSON` array of tokens which will be what you hand out like candy
@@ -108,10 +113,6 @@ Delete a previously generated token
 - `sub`
     
     The JWT `sub` claim of the token you want to delete
-
-#### Headers
-
-- `Authorization` `Bearer {auth token}`
 
 #### Return
 
@@ -138,7 +139,7 @@ Run a SQL query on the database
 
 #### Headers
 
-- `Authorization` `Bearer {auth token}`
+- `Content-Type` `x-www-form-urlencoded`
 
 #### Return
 
@@ -168,10 +169,6 @@ Get information about the sequencer Durable Object. You very probably don't ever
 #### Body
 
 Review the [endpoint code](./src/api/sequencer-info.ts) for available params.
-
-#### Headers
-
-- `Authorization` `Bearer {auth token}`
 
 #### Return
 
