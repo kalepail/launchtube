@@ -1,20 +1,14 @@
-import { xdr, Networks, Keypair, Account } from "@stellar/stellar-base";
-import { fetcher } from "itty-fetcher";
-import { wait } from "./helpers";
-
-export const rpc = fetcher({
-    base: 'https://soroban-testnet.stellar.org'
-    // base: 'https://rpc-futurenet.stellar.org'
-})
-export const networkPassphrase = Networks.TESTNET
-// export const networkPassphrase = Networks.FUTURENET
+import { xdr, Keypair, Account } from "@stellar/stellar-base";
+import { vars, wait } from "./helpers";
 
 /* TODO
     - Add in all the types from stellar-sdk
         Doesn't look like they're exported so we'll need to manually copy that file over
 */
 
-export function getAccount(publicKey: string) {
+export async function getAccount(env: Env, publicKey: string) {
+    const { rpc } = vars(env)
+
     return rpc.post('/', {
         jsonrpc: "2.0",
         id: 8891,
@@ -42,7 +36,9 @@ export function getAccount(publicKey: string) {
         })
 }
 
-export function simulateTransaction(xdr: string) {
+export async function simulateTransaction(env: Env, xdr: string) {
+    const { rpc } = vars(env)
+
     return rpc.post('/', {
         jsonrpc: '2.0',
         id: 8891,
@@ -58,7 +54,9 @@ export function simulateTransaction(xdr: string) {
     })
 }
 
-export function sendTransaction(xdr: string) {
+export async function sendTransaction(env: Env, xdr: string) {
+    const { rpc } = vars(env)
+
     return rpc.post('/', {
         jsonrpc: '2.0',
         id: 8891,
@@ -73,7 +71,7 @@ export function sendTransaction(xdr: string) {
         // 'TRY_AGAIN_LATER'
         // 'ERROR'
         if (res.result.status === 'PENDING')
-            return pollTransaction(res.result)
+            return pollTransaction(env, res.result)
         else
             throw {
                 xdr,
@@ -82,7 +80,9 @@ export function sendTransaction(xdr: string) {
     })
 }
 
-export function getTransaction(hash: string) {
+export async function getTransaction(env: Env, hash: string) {
+    const { rpc } = vars(env)
+
     return rpc.post('/', {
         jsonrpc: '2.0',
         id: 8891,
@@ -102,8 +102,8 @@ export function getTransaction(hash: string) {
     })
 }
 
-async function pollTransaction(sendResult: any, interval = 0) {
-    const getResult = await getTransaction(sendResult.hash)
+async function pollTransaction(env: Env, sendResult: any, interval = 0) {
+    const getResult = await getTransaction(env, sendResult.hash)
 
     console.log(interval, getResult.status);
 
@@ -117,5 +117,5 @@ async function pollTransaction(sendResult: any, interval = 0) {
 
     interval++
     await wait()
-    return pollTransaction(sendResult, interval)
+    return pollTransaction(env, sendResult, interval)
 }

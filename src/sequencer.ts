@@ -1,7 +1,7 @@
 import { Keypair, Operation, StrKey, Transaction, TransactionBuilder } from "@stellar/stellar-base";
 import { DurableObject } from "cloudflare:workers";
-import { getAccount, networkPassphrase, sendTransaction } from "./common";
-import { addUniqItemsToArray, getRandomNumber, removeValueFromArrayIfExists, wait } from "./helpers";
+import { getAccount, sendTransaction } from "./common";
+import { vars, addUniqItemsToArray, getRandomNumber, removeValueFromArrayIfExists, wait } from "./helpers";
 
 export class SequencerDurableObject extends DurableObject<Env> {
     private ready: boolean = true
@@ -136,9 +136,11 @@ export class SequencerDurableObject extends DurableObject<Env> {
         try {
             this.ready = false
 
+            const { networkPassphrase } = vars(this.env)
+
             const fundKeypair = Keypair.fromSecret(this.env.FUND_SK)
             const fundPubkey = fundKeypair.publicKey()
-            const fundSource = await getAccount(fundPubkey)
+            const fundSource = await getAccount(this.env, fundPubkey)
 
             let transaction: TransactionBuilder | Transaction = new TransactionBuilder(fundSource, {
                 fee: getRandomNumber(10_000, 100_000).toString(),
@@ -159,7 +161,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
 
             transaction.sign(fundKeypair)
 
-            await sendTransaction(transaction.toXDR())
+            await sendTransaction(this.env, transaction.toXDR())
 
             // If we fail here we'll lose the sequence keypairs. Keypairs should be derived so they can always be recreated
             for (const sequenceSecret of queue) {

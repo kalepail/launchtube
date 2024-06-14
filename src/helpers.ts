@@ -1,9 +1,13 @@
 import { Account, authorizeEntry, Keypair, nativeToScVal, Operation, StrKey, TransactionBuilder, xdr } from "@stellar/stellar-base"
-import { networkPassphrase, simulateTransaction } from "./common"
+import { simulateTransaction } from "./common"
+import { fetcher } from "itty-fetcher";
 
-// TODO this should be a env var
-const nativeContract = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC'
-// const nativeContract = 'CB64D3G7SM2RTH6JSGG34DDTFTQ5CFDKVDZJZSODMCX4NJ2HV2KN7OHT'
+export function vars(env: Env) {
+    return {
+        rpc: fetcher({ base: env.RPC_URL }),
+        networkPassphrase: env.NETWORK_PASSPHRASE
+    }
+}
 
 export function wait(ms: number = 1000) {
     return new Promise((resolve) => setTimeout(resolve, ms))
@@ -45,9 +49,11 @@ export function getRandomNumber(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export async function getMockData(type: 'xdr' | 'op' | undefined = undefined) {
+export async function getMockData(env: Env, type: 'xdr' | 'op' | undefined = undefined) {
+    const { networkPassphrase } = vars(env)
+
     // TODO we should ensure this address is funded before trying to use it. Should also be an env var only on dev
-    const testKeypair = Keypair.fromSecret('SDBU42TUE6HKIO3YBN3K66X5CC4EOUGUPAFUX7UFXXRMLPGECEUR2ZN4') // GASY26VMSOOCWFA2ZASHW2ZDIDZUQVXGVVKOGKSIDDTDWNSLIF6KKKCD
+    const testKeypair = Keypair.fromSecret(env.TEST_SK)
     const testPubkey = testKeypair.publicKey()
 
     const mockPubkey = StrKey.encodeEd25519PublicKey(Buffer.alloc(32))
@@ -58,11 +64,11 @@ export async function getMockData(type: 'xdr' | 'op' | undefined = undefined) {
         networkPassphrase,
     })
         .addOperation(Operation.invokeContractFunction({
-            contract: nativeContract,
+            contract: env.NATIVE_CONTRACT_ID,
             function: 'transfer',
             args: [
                 nativeToScVal(testPubkey, { type: 'address' }),
-                nativeToScVal(nativeContract, { type: 'address' }),
+                nativeToScVal(env.NATIVE_CONTRACT_ID, { type: 'address' }),
                 nativeToScVal(100, { type: 'i128' })
                 // nativeToScVal(-1, { type: 'i128' }) // to fail simulation
             ],
@@ -71,7 +77,7 @@ export async function getMockData(type: 'xdr' | 'op' | undefined = undefined) {
         .setTimeout(30)
         .build()
 
-    const sim = await simulateTransaction(transaction.toXDR())
+    const sim = await simulateTransaction(env, transaction.toXDR())
 
     const op = transaction.operations[0] as Operation.InvokeHostFunction
 

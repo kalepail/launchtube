@@ -4,8 +4,8 @@ import { SequencerDurableObject } from "./sequencer";
 import { IttyRouter, RequestLike, cors, error, json, text, withParams } from 'itty-router'
 import { verify, decode, sign } from '@tsndr/cloudflare-worker-jwt'
 import { object, preprocess, number, string, array, ZodIssueCode } from "zod";
-import { getAccount, networkPassphrase, sendTransaction, simulateTransaction } from "./common";
-import { arraysEqualUnordered, getMockData } from "./helpers";
+import { getAccount, sendTransaction, simulateTransaction } from "./common";
+import { vars, arraysEqualUnordered, getMockData } from "./helpers";
 
 const MAX_U32 = 2 ** 32 - 1
 const SEQUENCER_ID_NAME = 'Test Launchtube ; June 2024'
@@ -86,13 +86,14 @@ router
 				fee,
 			} = schema.parse(
 				isMock && env.ENV === 'development'
-					? await getMockData(mock) // Only ever mock in development
+					? await getMockData(env, mock) // Only ever mock in development
 					: Object.fromEntries(formData)
 			)
 
 			if (debug)
 				return json({ xdr: x, func: f, auth: a, fee })
 
+			const { networkPassphrase } = vars(env)
 			const creditsId = env.CREDITS_DURABLE_OBJECT.idFromString(payload.sub)
 			const creditsStub = env.CREDITS_DURABLE_OBJECT.get(creditsId) as DurableObjectStub<CreditsDurableObject>;
 
@@ -106,7 +107,7 @@ router
 
 			const sequenceKeypair = Keypair.fromSecret(sequenceSecret)
 			const sequencePubkey = sequenceKeypair.publicKey()
-			const sequenceSource = await getAccount(sequencePubkey)
+			const sequenceSource = await getAccount(env, sequencePubkey)
 
 			let func: xdr.HostFunction
 			let auth: xdr.SorobanAuthorizationEntry[] | undefined
@@ -180,7 +181,7 @@ router
 
 			transaction.sign(sequenceKeypair)
 
-			const sim = await simulateTransaction(transaction.toXDR())
+			const sim = await simulateTransaction(env, transaction.toXDR())
 
 			/* NOTE
 				- Check that we have the right auth
@@ -227,7 +228,7 @@ router
 			// Refund eager credits and spend the tx bid credits
 			credits = await creditsStub.spendBefore(bidCredits, EAGER_CREDITS)
 
-			res = await sendTransaction(feeBumpTransaction.toXDR())
+			res = await sendTransaction(env, feeBumpTransaction.toXDR())
 
 			const feeCredits = xdr.TransactionResult.fromXDR(res.resultXdr, 'base64').feeCharged().toBigInt()
 
