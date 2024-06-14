@@ -13,17 +13,17 @@ export class SequencerDurableObject extends DurableObject<Env> {
     }
 
     public async getData() {
-        const pool = await this.ctx.storage.list({ prefix: 'pool:'})
-        const field = await this.ctx.storage.list({ prefix: 'field:'})
+        const pool = await this.ctx.storage.list({ prefix: 'pool:' })
+        const field = await this.ctx.storage.list({ prefix: 'field:' })
         const index = await this.ctx.storage.get<number>('index') || 0
 
         return {
             index,
-            no: this.no.map((key) => Keypair.fromSecret(key).publicKey()),
+            no: this.no,
             poolCount: pool.size,
             fieldCount: field.size,
-            pool: [...pool.entries()].map(([key]) => Keypair.fromSecret(key.split(':')[1]).publicKey()),
-            field: [...field.entries()].map(([key]) => Keypair.fromSecret(key.split(':')[1]).publicKey())
+            pool: [...pool.entries()],
+            field: [...field.entries()]
         }
     }
     public async getSequence(): Promise<string> {
@@ -49,9 +49,13 @@ export class SequencerDurableObject extends DurableObject<Env> {
             return poolSecret || sequenceSecret
         }
     }
-    public async returnSequence(sequenceSecret: string) {
-        this.ctx.storage.delete(`field:${sequenceSecret}`)
-        this.ctx.storage.put(`pool:${sequenceSecret}`, true)
+    public async deleteSequence(sequence: string) {
+        this.ctx.storage.delete(`field:${sequence}`)
+        this.ctx.storage.delete(`pool:${sequence}`)
+    }
+    public async returnSequence(sequence: string) {
+        this.ctx.storage.delete(`field:${sequence}`)
+        this.ctx.storage.put(`pool:${sequence}`, true)
     }
 
     // e.g. scenario
@@ -75,7 +79,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
 
         const index = await this.ctx.storage.get<number>('index') || 0
         const indexBuffer = Buffer.alloc(4);
-        
+
         indexBuffer.writeUInt32BE(index);
 
         // Seed new sequences in a reproducible way so we can always recreate them to recoup "lost" accounts
@@ -108,7 +112,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
             return poolSecret
 
         if (interval >= 30 && this.ready) // ensure transaction isn't in flight before timing out
-            throw 'Sequencer transaction timed out. Please try again'        
+            throw 'Sequencer transaction timed out. Please try again'
 
         if (this.ready)
             this.createSequences(this.queue.splice(0, 25)) // No need to block the request waiting for this
@@ -167,7 +171,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
             for (const sequenceSecret of queue) {
                 this.ctx.storage.put(`pool:${sequenceSecret}`, true)
             }
-        } catch(err) {
+        } catch (err) {
             this.no = addUniqItemsToArray(this.no, ...queue.map((sequence) => Keypair.fromSecret(sequence).secret()))
             console.log(err);
             await wait(5000);

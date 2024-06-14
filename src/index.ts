@@ -27,11 +27,13 @@ const router = IttyRouter()
 
 router
 	.options('*', preflight)
+	// Public endpoints
 	.all('*', withParams)
+	.get('/', apiTokenInfo)
 	.post('/', apiLaunch)
+	// Private endpoints
 	.get('/seq', apiSequencerInfo)
 	.get('/gen', apiTokensGenerate)
-	.get('/', apiTokenInfo)
 	.delete('/:sub', apiTokenDelete)
 	.post('/sql', apiSql)
 	.all('*', () => error(404))
