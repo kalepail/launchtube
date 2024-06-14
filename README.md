@@ -8,7 +8,7 @@
 
 ### `GET` `/`
 
-Get the remaining credits (stoops) available for your account
+Get the remaining credits (stoops) available for your token
 
 #### Headers
 
@@ -16,7 +16,9 @@ Get the remaining credits (stoops) available for your account
 
 #### Return
 
-`String` numeric value of the account’s remaining credits (stroops)
+`String` numeric value of the token's remaining credits (stroops)
+
+---
 
 ### `POST` `/`
 
@@ -24,20 +26,34 @@ Submit a transaction
 
 > [!IMPORTANT]  
 > Credits are spent with progressive levels of granularity as the transaction moves through the backend
-> Initially upon submission 100_000 credits are spent
-> Assuming your tx simulates successfully, those 100_000 credits are refunded and the tx bid fee is spent
-> If your tx submission is successful the bid is refunded and the final tx fee is spent 
+>
+> * Initially upon submission 100_000 credits are spent
+> * Assuming your tx simulates successfully, those 100_000 credits are refunded and the simulation bid fee is spent
+> * If your tx submission is successful the bid fee is refunded and the final tx fee is spent
+>
+> This ensures a fair and predictable system without restrictive rate limits by incentiving properly formed transactions
 
 #### Body
+
+- `fee`
+    
+    Number of credits (stroops) you want to use per operation to submit the transaction
+
+AND
 
 - `xdr`
     
     Transaction you want submitted as an `XDR` encoded `String`
-    
-- `fee`
-    
-    Number of credits (stroops) you want to use per operation to submit the transaction
-    
+
+OR
+
+- `func`
+
+    `xdr.HostFunction` encoded as an `XDR` `String`
+
+- `auth`
+
+    Array of `xdr.SorobanAuthorizationEntry` encoded `XDR` `String`s 
 
 #### Headers
 
@@ -46,61 +62,69 @@ Submit a transaction
 
 #### Return
 
-The response of the transaction submission assuming it was successful. Otherwise the error will be returned
+The response of the transaction submission as `JSON` assuming it was successful. Otherwise a (hopefully) useful `JSON` error.
+
+---
 
 <details closed>
 <summary><h2>Private Endpoints</h2></summary>
 
+If you need an auth token let [tyler@stellar.org](mailto:tyler@stellar.org) know.
+
 ### `GET` `/gen`
 
-Generate a list of new credit accounts
+Generate a list of new credit JWT tokens
 
 #### Query
 
 - `ttl`
     
-    The number of seconds these accounts should live for
+    The number of seconds these tokens should live for
     
 - `credits`
     
-    The number of credits these accounts can spend (in stroops)
+    The number of credits these tokens can spend (in stroops)
     
 - `count`
     
-    The number of unique new accounts to generate (max of 100)
+    The number of unique new tokens to generate (max of 100)
     
-
 #### Headers
 
 - `Authorization` `Bearer {auth token}`
     
-    If you need an auth token let [tyler@stellar.org](mailto:tyler@stellar.org) know
-    
-
 #### Return
 
-`JSON` array of jwt tokens which will be what you hand out like candy
+`JSON` array of tokens which will be what you hand out like candy
+
+---
 
 ### `DELETE` `/:sub`
 
-Delete an existing account
+Delete a previously generated token
 
 #### Params
 
 - `sub`
     
-    The jwt `sub` claim of the account in question
-    
+    The JWT `sub` claim of the token you want to delete
 
 #### Headers
 
 - `Authorization` `Bearer {auth token}`
-    
-    If you need an auth token let [tyler@stellar.org](mailto:tyler@stellar.org) know
+
+#### Return
+
+`OK`
+
+---
 
 ### `POST` `/sql`
 
 Run a SQL query on the database
+
+> [!CAUTION]  
+> Be careful! I don't do any query validation before running your query so you could easily bork the database with an erroneous query. So don't do that
 
 #### Body
 
@@ -111,13 +135,10 @@ Run a SQL query on the database
 - `args`
     
     Positional arguments for the query. Include as strings in an array. e.g. `["arg1", "arg2"]`
-    
 
 #### Headers
 
 - `Authorization` `Bearer {auth token}`
-    
-    If you need an auth token let [tyler@stellar.org](mailto:tyler@stellar.org) know
 
 #### Return
 
@@ -136,5 +157,23 @@ e.g.
     ...
 ]
 ```
-Sub is the key JWT `sub` claim and Tx is the transaction hash
+`Sub` is the token's `sub` claim and `Tx` is the transaction hash
+
+---
+
+### `GET` `/seq`
+
+Get information about the sequencer Durable Object. You very probably don't ever need to run this. It's really just for system maintainers doing health or debug checks.
+
+#### Body
+
+Review the [endpoint code](./src/api/sequencer-info.ts) for available params.
+
+#### Headers
+
+- `Authorization` `Bearer {auth token}`
+
+#### Return
+
+`JSON` object with information about the sequencer. Again, review the code for the exact shape of the response.
 </details>

@@ -32,10 +32,11 @@ router
 	.get('/', apiTokenInfo)
 	.post('/', apiLaunch)
 	// Private endpoints
-	.get('/seq', apiSequencerInfo)
 	.get('/gen', apiTokensGenerate)
 	.delete('/:sub', apiTokenDelete)
+	.get('/seq', apiSequencerInfo)
 	.post('/sql', apiSql)
+	// ---
 	.all('*', () => error(404))
 
 const handler = {
