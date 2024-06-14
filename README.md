@@ -82,6 +82,8 @@ Get the remaining credits (stoops) available for your token
 
 If you need an auth token let [tyler@stellar.org](mailto:tyler@stellar.org) know.
 
+---
+
 ### `GET` `/gen`
 
 Generate a list of new credit JWT tokens
