@@ -4,7 +4,7 @@
 
 ## Base URL
 
-[https://launchtube.sdf-ecosystem.workers.dev](https://launchtube.sdf-ecosystem.workers.dev/gen?ttl=10&credits=10000000&count=1)
+`https://launchtube.sdf-ecosystem.workers.dev`
 
 ## Public Endpoints
 
