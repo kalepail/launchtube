@@ -34,8 +34,14 @@ router
 		return html(`
 			<h1>Activate Launchtube Token</h1>
 			<form method="POST" action="/activate">
-				<label for="token">Token:</label>
-				<input type="text" id="token" name="token" value=${req.query.token} required>
+				<p>
+					<label for="consent">Agree to <a href="/terms">T&C</a>:</label>
+					<input type="checkbox" id="consent" name="consent" required>
+				</p>
+				<p>
+					<label for="token">Token:</label>
+					<input type="text" id="token" name="token" value=${req.query.token} required>
+				</p>
 				<button type="submit">Activate</button>
 			</form>
 		`)

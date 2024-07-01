@@ -4,7 +4,11 @@ import { CreditsDurableObject } from "../credits"
 
 export async function apiTokenActivate(request: RequestLike, env: Env, _ctx: ExecutionContext) {
     const body = await request.formData()
+    const consent = body.get('consent') === 'on'
     const token = body.get('token')
+
+    if (!consent)
+        return error(400, 'Consent required')
 
     if (!await verify(token, env.JWT_SECRET))
         return error(401, 'Unauthorized')
