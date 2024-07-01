@@ -5,18 +5,19 @@
   "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --env prod",
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "build": "node esbuild.js",
     "types": "wrangler types"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240605.0",
+    "@cloudflare/workers-types": "^4.20240620.0",
     "esbuild": "^0.21.5",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "loadtest": "^8.0.9",
-    "typescript": "^5.4.5",
-    "wrangler": "^3.60.2"
+    "typescript": "^5.5.2",
+    "wrangler": "^3.61.0"
   },
   "dependencies": {
     "@stellar/stellar-base": "git+https://github.com/stellar/js-stellar-base.git#inner-fee-fix",

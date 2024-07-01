@@ -171,9 +171,9 @@ export class SequencerDurableObject extends DurableObject<Env> {
             for (const sequenceSecret of queue) {
                 this.ctx.storage.put(`pool:${sequenceSecret}`, true)
             }
-        } catch (err) {
+        } catch (err: any) {
             this.no = addUniqItemsToArray(this.no, ...queue.map((sequence) => Keypair.fromSecret(sequence).secret()))
-            console.log(err);
+            console.error(err);
             await wait(5000);
             // No need to throw here as we'll catch tx errors elsewhere in the lookupSequence
         } finally {

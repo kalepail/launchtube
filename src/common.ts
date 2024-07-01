@@ -13,7 +13,7 @@ export const EAGER_CREDITS = 100_000
 export async function getAccount(env: Env, publicKey: string) {
     const { rpc } = vars(env)
 
-    return rpc.post('/', {
+    return rpc.post('', {
         jsonrpc: "2.0",
         id: 8891,
         method: "getLedgerEntries",
@@ -43,7 +43,7 @@ export async function getAccount(env: Env, publicKey: string) {
 export async function simulateTransaction(env: Env, xdr: string) {
     const { rpc } = vars(env)
 
-    return rpc.post('/', {
+    return rpc.post('', {
         jsonrpc: '2.0',
         id: 8891,
         method: 'simulateTransaction',
@@ -61,7 +61,7 @@ export async function simulateTransaction(env: Env, xdr: string) {
 export async function sendTransaction(env: Env, xdr: string) {
     const { rpc } = vars(env)
 
-    return rpc.post('/', {
+    return rpc.post('', {
         jsonrpc: '2.0',
         id: 8891,
         method: 'sendTransaction',
@@ -87,7 +87,7 @@ export async function sendTransaction(env: Env, xdr: string) {
 export async function getTransaction(env: Env, hash: string) {
     const { rpc } = vars(env)
 
-    return rpc.post('/', {
+    return rpc.post('', {
         jsonrpc: '2.0',
         id: 8891,
         method: 'getTransaction',

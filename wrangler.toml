@@ -5,6 +5,15 @@ compatibility_date = "2024-05-12"
 workers_dev = true
 minify = true
 
+[build]
+command = "npm run build"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["CreditsDurableObject", "SequencerDurableObject"]
+
+### DEV ###
+
 [[durable_objects.bindings]]
 name = "CREDITS_DURABLE_OBJECT"
 class_name = "CreditsDurableObject"
@@ -12,10 +21,6 @@ class_name = "CreditsDurableObject"
 [[durable_objects.bindings]]
 name = "SEQUENCER_DURABLE_OBJECT"
 class_name = "SequencerDurableObject"
-
-[[migrations]]
-tag = "v1"
-new_classes = ["CreditsDurableObject", "SequencerDurableObject"]
 
 [[kv_namespaces]]
 binding = "SUDOS"
@@ -26,9 +31,6 @@ binding = "DB"
 database_name = "launchtube-testnet"
 database_id = "80e789b8-41a6-4741-aeca-62b4203661dc"
 
-[build]
-command = "npm run build"
-
 [define]
 global = "globalThis"
 
@@ -37,3 +39,34 @@ ENV = "development"
 NATIVE_CONTRACT_ID="CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
 RPC_URL="https://soroban-testnet.stellar.org"
 NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
+
+### PROD ###
+
+[env.prod]
+workers_dev = true
+
+[[env.prod.durable_objects.bindings]]
+name = "CREDITS_DURABLE_OBJECT"
+class_name = "CreditsDurableObject"
+
+[[env.prod.durable_objects.bindings]]
+name = "SEQUENCER_DURABLE_OBJECT"
+class_name = "SequencerDurableObject"
+
+[[env.prod.kv_namespaces]]
+binding = "SUDOS"
+id = "4d86c63ffe344460ab9f740c48e01cab"
+
+[[env.prod.d1_databases]]
+binding = "DB"
+database_name = "launchtube-public"
+database_id = "22bd71e0-81f5-4d93-80a9-1242869cbbe5"
+
+[env.prod.define]
+global = "globalThis"
+
+[env.prod.vars]
+ENV = "production"
+NATIVE_CONTRACT_ID="CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA"
+RPC_URL="https://svc.blockdaemon.com/stellar/mainnet/native/soroban-rpc"
+NETWORK_PASSPHRASE="Public Global Stellar Network ; September 2015"

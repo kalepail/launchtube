@@ -4,7 +4,12 @@ import { fetcher } from "itty-fetcher";
 
 export function vars(env: Env) {
     return {
-        rpc: fetcher({ base: env.RPC_URL }),
+        rpc: fetcher({
+            base: env.RPC_URL, 
+            headers: {
+                Authorization: `Bearer ${env.RPC_KEY}`,
+            }
+        }),
         networkPassphrase: env.NETWORK_PASSPHRASE
     }
 }
@@ -14,7 +19,7 @@ export function wait(ms: number = 1000) {
 }
 
 export function arraysEqualUnordered(arr1: any[], arr2: any[]) {
-    if (arr1.length !== arr2.length) 
+    if (arr1.length !== arr2.length)
         return false;
 
     arr1.sort();
