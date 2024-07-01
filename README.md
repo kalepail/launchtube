@@ -65,13 +65,37 @@ The response of the transaction submission as `JSON` assuming it was successful.
 
 ---
 
-### `GET` `/`
+### `GET` `/info`
 
 Get the remaining credits (stoops) available for your token
 
 #### Return
 
 `String` numeric value of the token's remaining credits (stroops)
+
+---
+
+### `GET` `/`
+
+Webpage form to activate your token to enable usage of the API
+
+#### Query
+
+- `token`
+    
+    The `{jwt token}` you were given and wish to activate
+
+---
+
+### `POST` `/activate`
+
+The api endpoint used by the `GET` `/` webpage form to activate your token
+
+#### Body
+
+- `token`
+    
+    The `{jwt token}` you were given and wish to activate
 
 ---
 

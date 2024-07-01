@@ -1,12 +1,13 @@
 import { CreditsDurableObject } from "./credits";
 import { SequencerDurableObject } from "./sequencer";
-import { IttyRouter, cors, error, withParams } from 'itty-router'
+import { IttyRouter, cors, error, html, withParams, RequestLike } from 'itty-router'
 import { apiLaunch } from "./api/launch";
 import { apiSequencerInfo } from "./api/sequencer-info";
 import { apiTokenInfo } from "./api/token-info";
 import { apiTokenDelete } from "./api/token-delete";
 import { apiTokensGenerate } from "./api/tokens-generate";
 import { apiSql } from "./api/sql";
+import { apiTokenActivate } from "./api/token-activate";
 
 const { preflight, corsify } = cors()
 const router = IttyRouter()
@@ -29,7 +30,18 @@ router
 	.options('*', preflight)
 	.all('*', withParams)
 	// Public endpoints
-	.get('/', apiTokenInfo)
+	.get('/', (req: RequestLike, _env: Env, _ctx: ExecutionContext) => {
+		return html(`
+			<h1>Activate Launchtube Token</h1>
+			<form method="POST" action="/activate">
+				<label for="token">Token:</label>
+				<input type="text" id="token" name="token" value=${req.query.token} required>
+				<button type="submit">Activate</button>
+			</form>
+		`)
+	})
+	.post('/activate', apiTokenActivate)
+	.get('/info', apiTokenInfo)
 	.post('/', apiLaunch)
 	// Private endpoints
 	.get('/gen', apiTokensGenerate)
@@ -40,9 +52,9 @@ router
 	.all('*', () => error(404))
 
 const handler = {
-	fetch: (request: Request, env: Env, ctx: ExecutionContext) =>
+	fetch: (req: Request, env: Env, ctx: ExecutionContext) =>
 		router
-			.fetch(request, env, ctx)
+			.fetch(req, env, ctx)
 			.catch((err) => {
 				console.error(err);
 				return error(
@@ -50,7 +62,7 @@ const handler = {
 					err instanceof Error ? err?.message : err
 				)
 			})
-			.then((r) => corsify(r, request))
+			.then((r) => corsify(r, req))
 }
 
 export {

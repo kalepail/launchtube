@@ -14,14 +14,23 @@ export class CreditsDurableObject extends DurableObject<Env> {
 		this.ctx.storage.put('credits', credits);
 		this.ctx.storage.setAlarm(Date.now() + ttl * 1000);
 	}
+	async activate() {
+		this.ctx.storage.put('activated', true)
+	}
 	async info() {
-		return this.ctx.storage.get('credits')
+		return {
+			credits: await this.ctx.storage.get('credits') || 0,
+			activated: await this.ctx.storage.get('activated') || false
+		}
 	}
 	async delete() {
 		return this.ctx.storage.deleteAll();
 	}
 
 	async spendBefore(credits: number, eagerCredits: number = 0) {
+		if (!(await this.ctx.storage.get('activated')))
+			throw 'Not activated'
+
 		const existing_credits = (await this.ctx.storage.get<number>('credits') || 0) + eagerCredits
 
 		if (existing_credits <= 0) 
@@ -34,6 +43,9 @@ export class CreditsDurableObject extends DurableObject<Env> {
 		return now_credits
 	}
 	async spendAfter(credits: number, tx: string, bidCredits: number = 0) {
+		if (!(await this.ctx.storage.get('activated')))
+			throw 'Not activated'
+
 		const existing_credits = (await this.ctx.storage.get<number>('credits') || 0) + bidCredits
 
 		if (existing_credits <= 0) 
