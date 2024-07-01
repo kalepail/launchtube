@@ -28,8 +28,10 @@ export class CreditsDurableObject extends DurableObject<Env> {
 	}
 
 	async spendBefore(credits: number, eagerCredits: number = 0) {
-		if (!(await this.ctx.storage.get('activated')))
-			throw 'Not activated'
+		if (
+			this.env.ENV !== 'development'
+			&& !(await this.ctx.storage.get('activated'))
+		) throw 'Not activated'
 
 		const existing_credits = (await this.ctx.storage.get<number>('credits') || 0) + eagerCredits
 
@@ -43,8 +45,10 @@ export class CreditsDurableObject extends DurableObject<Env> {
 		return now_credits
 	}
 	async spendAfter(credits: number, tx: string, bidCredits: number = 0) {
-		if (!(await this.ctx.storage.get('activated')))
-			throw 'Not activated'
+		if (
+			this.env.ENV !== 'development'
+			&& !(await this.ctx.storage.get('activated'))
+		) throw 'Not activated'
 
 		const existing_credits = (await this.ctx.storage.get<number>('credits') || 0) + bidCredits
 
