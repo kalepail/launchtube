@@ -97,6 +97,10 @@ The api endpoint used by the `GET` `/` webpage form to activate your token
     
     The `{jwt token}` you were given and wish to activate
 
+#### Headers
+
+- `Content-Type` `x-www-form-urlencoded`
+
 ---
 
 <details closed>
