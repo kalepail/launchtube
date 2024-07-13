@@ -40,7 +40,7 @@ router
 				</p>
 				<p>
 					<label for="token">Token:</label>
-					<input type="text" id="token" name="token" value=${req.query.token} required>
+					<input type="text" id="token" name="token" value="${req.query.token || ''}" required>
 				</p>
 				<button type="submit">Activate</button>
 			</form>
