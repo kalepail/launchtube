@@ -17,7 +17,7 @@
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "loadtest": "^8.0.9",
     "typescript": "^5.5.3",
-    "wrangler": "^3.64.0"
+    "wrangler": "^3.65.0"
   },
   "dependencies": {
     "@stellar/stellar-base": "git+https://github.com/stellar/js-stellar-base.git#inner-fee-fix",

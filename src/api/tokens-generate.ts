@@ -4,18 +4,28 @@ import { CreditsDurableObject } from "../credits";
 import { sign } from "@tsndr/cloudflare-worker-jwt";
 
 export async function apiTokensGenerate(request: RequestLike, env: Env, _ctx: ExecutionContext) {
-    const token = request.headers.get('Authorization').split(' ')[1]
+    let ttl, credits, count;
 
-    if (!await env.SUDOS.get(token))
-        return error(401, 'Unauthorized')
+    if (env.ENV === 'development') {
+        ttl = 31_536_000
+        credits = 1_000_000_000
+        count = 1
+    } else {
+        const token = request.headers.get('Authorization').split(' ')[1]
 
-    const body = object({
-        ttl: preprocess(Number, number()),
-        credits: preprocess(Number, number()),
-        count: preprocess(Number, number().gte(1).lte(100)),
-    });
+        if (!await env.SUDOS.get(token))
+            return error(401, 'Unauthorized')
 
-    let { ttl, credits, count } = body.parse(request.query)
+        const body = object({
+            ttl: preprocess(Number, number()),
+            credits: preprocess(Number, number()),
+            count: preprocess(Number, number().gte(1).lte(100)),
+        }).parse(request.query)
+    
+        ttl = body.ttl
+        credits = body.credits
+        count = body.count
+    }
 
     const tokens = []
 
