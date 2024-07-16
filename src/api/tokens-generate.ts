@@ -7,8 +7,8 @@ export async function apiTokensGenerate(request: RequestLike, env: Env, _ctx: Ex
     let ttl, credits, count;
 
     if (env.ENV === 'development') {
-        ttl = 31_536_000
-        credits = 1_000_000_000
+        ttl = 7_257_600 // 3 months (12 weeks)
+        credits = 1_000_000_000 // 100 XLM
         count = 1
     } else {
         const token = request.headers.get('Authorization').split(' ')[1]
