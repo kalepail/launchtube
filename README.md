@@ -6,7 +6,8 @@ The Launchtube service aims to alleviate all of these challenges and complexitie
 
 ## Base URL
 
-* `Testnet` `https://launchtube.sdf-ecosystem.workers.dev`
+* `Testnet` `https://testnet.launchtube.xyz`
+* `Public` `https://launchtube.xyz`
 
 ## Public Endpoints
 
