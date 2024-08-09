@@ -3,6 +3,7 @@
 > [!CAUTION]  
 > This repo has moved to https://github.com/kalepail/launchtube
 
+---
 
 Getting Stellar transactions successfully submitted to the network can be a chore. You've got a lot to think about between fees, sequence numbers, block times, retries, rate limits, ledger limits, and more. This gets even more tricky when trying to submit Stellar smart wallet operations. Soroban contracts can't pay Stellar transaction fees, they maintain nonces not sequence numbers. 
 
