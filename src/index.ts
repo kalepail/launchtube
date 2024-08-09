@@ -8,6 +8,7 @@ import { apiTokenDelete } from "./api/token-delete";
 import { apiTokensGenerate } from "./api/tokens-generate";
 import { apiSql } from "./api/sql";
 import { apiTokenActivate } from "./api/token-activate";
+import { verify } from "@tsndr/cloudflare-worker-jwt";
 
 const { preflight, corsify } = cors()
 const router = IttyRouter()
@@ -30,7 +31,10 @@ router
 	.options('*', preflight)
 	.all('*', withParams)
 	// Public endpoints
-	.get('/', (req: RequestLike, _env: Env, _ctx: ExecutionContext) => {
+	.get('/', async (req: RequestLike, env: Env, _ctx: ExecutionContext) => {
+		if (!await verify(req.query.token, env.JWT_SECRET))
+			return error(401, 'Unauthorized')
+
 		return html(`
 			<h1>Activate Launchtube Token</h1>
 			<form method="POST" action="/activate">

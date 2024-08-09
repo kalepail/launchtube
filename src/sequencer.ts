@@ -147,7 +147,7 @@ export class SequencerDurableObject extends DurableObject<Env> {
             const fundSource = await getAccount(this.env, fundPubkey)
 
             let transaction: TransactionBuilder | Transaction = new TransactionBuilder(fundSource, {
-                fee: getRandomNumber(10_000, 100_000).toString(),
+                fee: getRandomNumber(10_000, 100_000).toString(), // TODO should this be more dynamic from a fee endpoint?
                 networkPassphrase,
             })
 
