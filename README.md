@@ -1,7 +1,7 @@
 # Launchtube
 
 > [!CAUTION]  
-> This repo has moved to https://github.com/kalepail/launchtube
+> This repo has moved to https://github.com/stellar/launchtube
 
 ---
 
