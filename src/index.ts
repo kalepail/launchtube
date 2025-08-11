@@ -1,6 +1,7 @@
 import { CreditsDurableObject } from "./credits";
 import { SequencerDurableObject } from "./sequencer";
 import { MonitorDurableObject } from "./monitor";
+import { RateLimiterDurableObject } from "./rate-limiter";
 import { IttyRouter, cors, error, withParams } from 'itty-router'
 import { apiLaunch } from "./api/launch";
 import { apiSequencerInfo } from "./api/sequencer-info";
@@ -19,6 +20,7 @@ import { ZodError } from "zod";
 import { returnAllSequence, SEQUENCER_ID_NAME } from "./common";
 import { StrKey, xdr } from "@stellar/stellar-sdk/minimal";
 import { apiTokenGet } from "./api/token-get";
+import { checkRateLimit } from "./rate-limit-helper";
 
 const { preflight, corsify } = cors()
 const router = IttyRouter()
@@ -47,7 +49,16 @@ router
 			'Location': 'https://github.com/stellar/launchtube'
 		}
 	}))
-	.post('/', apiLaunch)
+	.post('/', async (req: Request, env: Env, ctx: ExecutionContext) => {
+		// Apply rate limiting only to POST / endpoint
+		const rateLimitResponse = await checkRateLimit(req, env);
+		if (rateLimitResponse) {
+			return rateLimitResponse;
+		}
+		
+		// Proceed with normal launch API
+		return apiLaunch(req, env, ctx);
+	})
 	.get('/terms-and-conditions', htmlTermsAndConditions)
 	.get('/activate', htmlActivate)
 	.post('/activate', apiTokenActivate)
@@ -182,5 +193,6 @@ export {
 	SequencerDurableObject,
 	CreditsDurableObject,
 	MonitorDurableObject,
+	RateLimiterDurableObject,
 	handler as default
 }
