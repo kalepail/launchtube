@@ -24,6 +24,10 @@ new_classes = ["CreditsDurableObject", "SequencerDurableObject"]
 tag = "v2"
 new_classes = ["MonitorDurableObject"]
 
+[[migrations]]
+tag = "v3"
+new_classes = ["RateLimitDurableObject"]
+
 [triggers]
 crons = [ "*/5 * * * *" ]
 
@@ -40,6 +44,10 @@ class_name = "SequencerDurableObject"
 [[durable_objects.bindings]]
 name = "MONITOR_DURABLE_OBJECT"
 class_name = "MonitorDurableObject"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMIT_DURABLE_OBJECT"
+class_name = "RateLimitDurableObject"
 
 [[kv_namespaces]]
 binding = "SUDOS"
@@ -61,6 +69,8 @@ global = "globalThis"
 ENV = "development"
 NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 NATIVE_CONTRACT_ID = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
+RATE_LIMIT_MAX = "2"
+RATE_LIMIT_WINDOW = "60"
 
 ### PROD ###
 
@@ -82,6 +92,10 @@ class_name = "SequencerDurableObject"
 name = "MONITOR_DURABLE_OBJECT"
 class_name = "MonitorDurableObject"
 
+[[env.prod.durable_objects.bindings]]
+name = "RATE_LIMIT_DURABLE_OBJECT"
+class_name = "RateLimitDurableObject"
+
 [[env.prod.kv_namespaces]]
 binding = "SUDOS"
 id = "4d86c63ffe344460ab9f740c48e01cab"
@@ -102,3 +116,5 @@ global = "globalThis"
 ENV = "production"
 NETWORK_PASSPHRASE = "Public Global Stellar Network ; September 2015"
 NATIVE_CONTRACT_ID = "CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA"
+RATE_LIMIT_MAX = "2"
+RATE_LIMIT_WINDOW = "60"

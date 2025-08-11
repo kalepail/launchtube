@@ -11,13 +11,16 @@ declare namespace Cloudflare {
 		RPC_URLS: string;
 		MOCK_SK: string;
 		FUND_SK: string;
-		JWT_SECRET: string;
-		CREDITS_DURABLE_OBJECT: DurableObjectNamespace<import("./dist/index").CreditsDurableObject>;
-		SEQUENCER_DURABLE_OBJECT: DurableObjectNamespace<import("./dist/index").SequencerDurableObject>;
-		MONITOR_DURABLE_OBJECT: DurableObjectNamespace<import("./dist/index").MonitorDurableObject>;
-		DB: D1Database;
-		EMAIL: SendEmail;
-	}
+                JWT_SECRET: string;
+                CREDITS_DURABLE_OBJECT: DurableObjectNamespace<import("./dist/index").CreditsDurableObject>;
+                SEQUENCER_DURABLE_OBJECT: DurableObjectNamespace<import("./dist/index").SequencerDurableObject>;
+                MONITOR_DURABLE_OBJECT: DurableObjectNamespace<import("./dist/index").MonitorDurableObject>;
+                RATE_LIMIT_DURABLE_OBJECT: DurableObjectNamespace<import("./dist/index").RateLimitDurableObject>;
+                DB: D1Database;
+                EMAIL: SendEmail;
+                RATE_LIMIT_MAX: string;
+                RATE_LIMIT_WINDOW: string;
+        }
 }
 interface Env extends Cloudflare.Env {}
 

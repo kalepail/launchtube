@@ -19,6 +19,7 @@ import { ZodError } from "zod";
 import { returnAllSequence, SEQUENCER_ID_NAME } from "./common";
 import { StrKey, xdr } from "@stellar/stellar-sdk/minimal";
 import { apiTokenGet } from "./api/token-get";
+import { RateLimitDurableObject } from "./rate-limit";
 
 const { preflight, corsify } = cors()
 const router = IttyRouter()
@@ -47,7 +48,19 @@ router
 			'Location': 'https://github.com/stellar/launchtube'
 		}
 	}))
-	.post('/', apiLaunch)
+        .post('/', async (req, env, ctx) => {
+                const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+                try {
+                        const id = env.RATE_LIMIT_DURABLE_OBJECT.idFromName(ip);
+                        const stub = env.RATE_LIMIT_DURABLE_OBJECT.get(id) as DurableObjectStub<RateLimitDurableObject>;
+                        const res = await stub.fetch('https://limit/');
+                        if (res.status !== 200) {
+                                const retry = await res.text();
+                                return error(429, `Rate limited, retry in ${retry}s`);
+                        }
+                } catch { }
+                return apiLaunch(req, env, ctx);
+        })
 	.get('/terms-and-conditions', htmlTermsAndConditions)
 	.get('/activate', htmlActivate)
 	.post('/activate', apiTokenActivate)
@@ -179,8 +192,9 @@ const handler = {
 }
 
 export {
-	SequencerDurableObject,
-	CreditsDurableObject,
-	MonitorDurableObject,
-	handler as default
+        SequencerDurableObject,
+        CreditsDurableObject,
+        MonitorDurableObject,
+        RateLimitDurableObject,
+        handler as default
 }
