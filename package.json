@@ -10,7 +10,8 @@
     "dev": "wrangler dev",
     "start": "pnpm run dev",
     "build": "node esbuild.js",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "test:rate-limit": "node test/rate-limit.test.js"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "13.3.0",

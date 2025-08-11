@@ -19,6 +19,8 @@ import { ZodError } from "zod";
 import { returnAllSequence, SEQUENCER_ID_NAME } from "./common";
 import { StrKey, xdr } from "@stellar/stellar-sdk/minimal";
 import { apiTokenGet } from "./api/token-get";
+import { rateLimit } from "./rate-limit";
+import { RateLimiterDurableObject } from "./rateLimiter";
 
 const { preflight, corsify } = cors()
 const router = IttyRouter()
@@ -47,7 +49,7 @@ router
 			'Location': 'https://github.com/stellar/launchtube'
 		}
 	}))
-	.post('/', apiLaunch)
+	.post('/', rateLimit, apiLaunch)
 	.get('/terms-and-conditions', htmlTermsAndConditions)
 	.get('/activate', htmlActivate)
 	.post('/activate', apiTokenActivate)
@@ -182,5 +184,6 @@ export {
 	SequencerDurableObject,
 	CreditsDurableObject,
 	MonitorDurableObject,
+	RateLimiterDurableObject,
 	handler as default
 }
